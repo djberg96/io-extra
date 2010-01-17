@@ -1,0 +1,44 @@
+== 1.2.1 - ???
+* Updates to the gemspec.
+* Added the :gem rake task.
+
+== 1.2.0 - 28-Jul-2009
+* Several Linux compatibility fixes, all provided by Eric Wong.
+* Now compatible with 1.9.x thanks to Eric Wong.
+* Bug fix for IO.pread - memory leak and null byte behavior spotted and
+  fixed by Eric Wong.
+* Changed license to Artistic 2.0.
+* Added test-unit 2.x as a development dependency.
+* Several tests were updated to use features from test-unit 2.x.
+* Fixed the 'example' rake task.
+
+== 1.1.1 - 8-Sep-2008
+* Added the IO.pread_ptr method. This returns the buffer address
+  rather than the buffer itself.
+* Added limited support for OS X.
+* Minor refactoring of the IO.pread method.
+
+== 1.1.0 - 28-Aug-2008
+* Added IO.pread and IO.pwrite methods for those platforms that
+  support them.
+* Fixed a warning that could occur in the IO#directio method.
+* Some updates the README, CHANGES, and test files.
+
+== 1.0.2 - 16-Jul-2007
+* Added a Rakefile with tasks for testing and installation.
+* Some doc updates and internal reorganization, but no significant code
+  changes.
+* Fixed an "implicit declaration" build warning (the man page was
+  mistaken about the header file I should use).
+* Minor updates to the example program.
+
+== 1.0.1 - 7-Jul-2006
+* Added a gemspec.
+* Added or improved the inline rdoc comments in the source.
+
+== 1.0.0 - 16-Jun-2005
+* Moved project to RubyForge.
+* Added a CHANGES file.
+
+== 0.1.0 - 26-Jan-2005
+* Initial release

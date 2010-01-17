@@ -1,0 +1,85 @@
+= Description
+   The io-extra library provides a few extra IO methods that you may find
+   handy.
+	
+= Supported Platforms
+   Works on most Unix platforms.
+
+   Not supported on MS Windows or OS X.
+
+= Synopsis
+   require "io/extra"
+   
+   # Print the fileno of each file handle and then close it
+   IO.fdwalk(0){ |fh|
+      p fh.fileno
+      fh.close
+   }
+   
+   # Close all file handles with a fileno greater than or equal to 2.
+   IO.closefrom(2)
+   
+= Class Methods
+IO.closefrom(low_fd)
+   Closes all open file descriptors greater than or equal to 'low_fd'.
+   
+   This uses your systems native closefrom() function, if supported. If not,
+   this method uses a slightly less efficient manual approach that uses
+   getrlimit() behind the scenes.
+   
+IO.fdwalk(low_fd){ |fh| ... }
+   Iterates over each open file descriptor and yields back a File object.
+   Note that it is up to you to close file handles, if desired, when this
+   method is used.
+	
+   Not supported on all platforms.
+
+IO.pread(fd, length, offset)
+   Reads +length+ bytes of data from the given +fd+, starting at +offset.
+   The primary advantage of this method over Ruby's IO#read method is that
+   it performs the read without changing the file pointer.
+
+   Not supported on all platforms.
+
+IO.pwrite(fd, buf, offset)
+   Writes +buf+ to the given +fd+, starting at +offset. The primary advantage
+   of this method over a standard seek & write approach is that it performs
+   the write without changing the file pointer.
+
+   Not supported on all platforms.
+
+= Instance methods
+IO#directio?
+   Returns true or false, based on whether directio has been set for the
+   current handle. The default is false.
+   
+   Note supported on all platforms.
+   
+IO#directio=(io_const)
+   Sets the advice for the current file descriptor using directio().  Valid
+   values are IO::DIRECTIO_ON and IO::DIRECTIO_OFF.
+   
+   All file descriptors start at DIRECTIO_OFF, unless your filesystem has
+   been mounted using 'forcedirectio' (and supports that option).
+   
+   Not supported on all platforms
+   
+= Constants
+IO::DIRECTIO_ON
+   This value can be passed to IO#directio= in order to turn directio on for
+   the given file handle.
+   
+   This value is only defined if your platform supports the directio()
+   function.
+IO::DIRECTIO_OFF
+   This value can be passed to IO#directio= in order to turn directio off for
+   the given file handle.
+   
+   This value is only defined if your platform supports the directio()
+   function.
+   
+IO::EXTRA_VERSION
+   Returns the current version number of this library as a String.
+
+= Other documentation
+See the README for more documentation.
