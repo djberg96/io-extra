@@ -19,7 +19,7 @@ class TC_IO_Extra < Test::Unit::TestCase
    end
      
    def test_version
-      assert_equal('1.2.0', IO::EXTRA_VERSION)
+      assert_equal('1.2.1', IO::EXTRA_VERSION)
    end
 
    def test_direct_constant

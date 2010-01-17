@@ -380,6 +380,6 @@ void Init_extra(){
    rb_define_singleton_method(rb_cIO, "pwrite", s_io_pwrite, 3);
 #endif
 
-   /* 1.2.0: The version of this library. This a string. */
-   rb_define_const(rb_cIO, "EXTRA_VERSION", rb_str_new2("1.2.0"));
+   /* 1.2.1: The version of this library. This a string. */
+   rb_define_const(rb_cIO, "EXTRA_VERSION", rb_str_new2("1.2.1"));
 }
