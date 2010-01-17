@@ -1,6 +1,8 @@
 == 1.2.1 - ???
+* Some README updates
 * Updates to the gemspec.
-* Added the :gem rake task.
+* Added the gem:build and gem:install rake task.
+* Source code moved to github.
 
 == 1.2.0 - 28-Jul-2009
 * Several Linux compatibility fixes, all provided by Eric Wong.
