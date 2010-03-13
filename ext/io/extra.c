@@ -389,7 +389,7 @@ static VALUE s_io_pwrite(VALUE klass, VALUE v_fd, VALUE v_buf, VALUE v_offset){
 #endif
 
 /* this can't be a function since we use alloca() */
-#define ARY2IOVEC(iov,iovcnt,ary) \
+#define ARY2IOVEC(iov,iovcnt,expect,ary) \
    do { \
       VALUE *cur; \
       struct iovec *tmp; \
@@ -401,12 +401,14 @@ static VALUE s_io_pwrite(VALUE klass, VALUE v_fd, VALUE v_buf, VALUE v_offset){
       if (n > IOV_MAX) \
          rb_raise(rb_eArgError, "array is larger than IOV_MAX"); \
       iov = tmp = alloca(sizeof(struct iovec) * n); \
+      expect = 0; \
       iovcnt = (int)n; \
       for (; --n >= 0; tmp++, cur++) { \
          if (TYPE(*cur) != T_STRING) \
             rb_raise(rb_eArgError, "must be an array of strings"); \
          tmp->iov_base = RSTRING_PTR(*cur); \
          tmp->iov_len = RSTRING_LEN(*cur); \
+         expect += tmp->iov_len; \
       } \
    } while (0)
 
@@ -436,16 +438,64 @@ static VALUE nogvl_writev(void *ptr)
  * Returns the number of bytes written.
  */
 static VALUE s_io_writev(VALUE klass, VALUE fd, VALUE ary) {
-   ssize_t result;
+   ssize_t result = 0;
+   ssize_t left;
    struct writev_args args;
 
    args.fd = NUM2INT(fd);
-   ARY2IOVEC(args.iov, args.iovcnt, ary);
+   ARY2IOVEC(args.iov, args.iovcnt, left, ary);
 
-   result = (ssize_t)
-               rb_thread_blocking_region(nogvl_writev, &args, RUBY_UBF_IO, 0);
-   if(result == -1)
-      rb_sys_fail("writev");
+   for(;;) {
+      ssize_t w = (ssize_t)rb_thread_blocking_region(nogvl_writev, &args,
+                                                     RUBY_UBF_IO, 0);
+
+      if(w == -1) {
+         if (rb_io_wait_writable(args.fd)) {
+            continue;
+         } else {
+            if (result > 0) {
+               /*
+                * unlikely to hit this case, return the already written bytes,
+                * we'll let the next write (or close) fail instead
+                */
+               break;
+            }
+            rb_sys_fail("writev");
+         }
+      }
+
+      result += w;
+      if(w == left) {
+         break;
+      } else { /* partial write, this can get tricky */
+         int i;
+         struct iovec *new_iov = args.iov;
+
+         left -= w;
+
+         /* skip over iovecs we've already written completely */
+         for (i = 0; i < args.iovcnt; i++, new_iov++) {
+            if (w == 0)
+               break;
+
+            /*
+             * partially written iov,
+             * modify and retry with current iovec in front
+             */
+            if (new_iov->iov_len > w) {
+               new_iov->iov_len -= w;
+               new_iov->iov_base += w;
+               break;
+            }
+
+            w -= new_iov->iov_len;
+         }
+
+         /* retry without the already-written iovecs */
+         args.iovcnt -= i;
+         args.iov = new_iov;
+      }
+   }
 
    return LONG2NUM(result);
 }

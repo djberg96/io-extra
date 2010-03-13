@@ -9,6 +9,7 @@ gem 'test-unit'
 
 require 'test/unit'
 require 'rbconfig'
+require 'io/nonblock'
 require 'io/extra'
 
 class TC_IO_Extra < Test::Unit::TestCase
@@ -109,7 +110,39 @@ class TC_IO_Extra < Test::Unit::TestCase
 
    def test_writev
       assert_respond_to(IO, :writev)
-      assert_nothing_raised{ IO.writev(@fh.fileno, %w(hello world)) }
+      assert_equal 10, IO.writev(@fh.fileno, %w(hello world))
+   end
+
+   def test_writev_retry
+      empty = ""
+      empty.force_encoding(:binary) if empty.respond_to?(:force_encoding)
+
+      # bs * count should be > PIPE_BUF
+      [ true, false ].each do |nonblock|
+         [ [ 512, 512 ], [ 131073, 3 ], [ 4098, 64 ] ].each do |(bs,count)|
+            rd, wr = IO.pipe
+            wr.nonblock = true
+            buf = File.open("/dev/urandom", "rb") { |fp| fp.sysread(bs) }
+            vec = count.times.map { buf }
+            pid = fork do
+               wr.close
+               tmp = []
+               sleep 0.1
+               begin
+                  tmp << rd.readpartial(8192, buf)
+               rescue EOFError
+                  break
+               end while true
+               ok = (vec.join(empty) == tmp.join(empty))
+               exit! ok
+            end
+            assert_nothing_raised { rd.close }
+            assert_equal(bs * count, IO.writev(wr.fileno, vec))
+            assert_nothing_raised { wr.close }
+            _, status = Process.waitpid2(pid)
+            assert status.success?
+         end
+      end
    end
 
    def teardown
