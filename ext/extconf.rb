@@ -6,11 +6,13 @@ dir_config('io')
 
 have_header('stdint.h')
 have_header('sys/resource.h')
+have_header('sys/uio.h')
 have_func('closefrom')
 have_func('fdwalk')
 have_func('directio')
 have_func('pread')
 have_func('pwrite')
+have_func('writev')
 have_func('rb_str_set_len', 'ruby.h')
 
 case Config::CONFIG['host_os']
