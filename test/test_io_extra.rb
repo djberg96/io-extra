@@ -55,6 +55,10 @@ class TC_IO_Extra < Test::Unit::TestCase
       assert_not_nil(IO::DIRECTIO_OFF)
    end
 
+   def test_IOV_MAX_constant
+      assert_kind_of(Integer, IO::IOV_MAX)
+   end
+
    def test_fdwalk
       omit_if(Config::CONFIG['host_os'] =~ /darwin/i, 'unsupported')
       assert_respond_to(IO, :fdwalk)
@@ -102,7 +106,12 @@ class TC_IO_Extra < Test::Unit::TestCase
       assert_respond_to(IO, :pwrite)
       assert_nothing_raised{ IO.pwrite(@fh.fileno, "HAL", 0) }
    end
-  
+
+   def test_writev
+      assert_respond_to(IO, :writev)
+      assert_nothing_raised{ IO.writev(@fh.fileno, %w(hello world)) }
+   end
+
    def teardown
       @fh.close rescue nil
       @fh = nil

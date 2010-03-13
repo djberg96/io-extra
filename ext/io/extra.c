@@ -14,6 +14,23 @@
 #include <stdint.h>
 #endif
 
+#ifdef HAVE_SYS_UIO_H
+#include <sys/uio.h>
+#endif
+
+#ifdef HAVE_LIMITS_H
+#include <limits.h>
+#endif
+
+#if !defined(IOV_MAX)
+#if defined(_SC_IOV_MAX)
+#define IOV_MAX (sysconf(_SC_IOV_MAX))
+#else
+/* assume infinity, or let the syscall return with error ... */
+#define IOV_MAX INT_MAX
+#endif
+#endif
+
 #ifndef RSTRING_PTR
 #define RSTRING_PTR(v) (RSTRING(v)->ptr)
 #define RSTRING_LEN(v) (RSTRING(v)->len)
@@ -345,6 +362,55 @@ static VALUE s_io_pwrite(VALUE klass, VALUE v_fd, VALUE v_buf, VALUE v_offset){
 }
 #endif
 
+/* this can't be a function since we use alloca() */
+#define ARY2IOVEC(iov,iovcnt,ary) \
+   do { \
+      VALUE *cur; \
+      struct iovec *tmp; \
+      long n; \
+      if (TYPE(ary) != T_ARRAY) \
+         rb_raise(rb_eArgError, "must be an array of strings"); \
+      cur = RARRAY_PTR(ary); \
+      n = RARRAY_LEN(ary); \
+      if (n > IOV_MAX) \
+         rb_raise(rb_eArgError, "array is larger than IOV_MAX"); \
+      iov = tmp = alloca(sizeof(struct iovec) * n); \
+      iovcnt = (int)n; \
+      for (; --n >= 0; tmp++, cur++) { \
+         if (TYPE(*cur) != T_STRING) \
+            rb_raise(rb_eArgError, "must be an array of strings"); \
+         tmp->iov_base = RSTRING_PTR(*cur); \
+         tmp->iov_len = RSTRING_LEN(*cur); \
+      } \
+   } while (0)
+
+#if defined(HAVE_WRITEV)
+/*
+ * IO.writev(fd, %w(hello world))
+ *
+ * This method writes the contents of an array of strings to the given +fd+.
+ * It can be useful to avoid generating a temporary string via Array#join
+ * when writing out large arrays of strings.
+ *
+ * The given array should have fewer elements than the IO::IOV_MAX constant.
+ *
+ * Returns the number of bytes written.
+ */
+static VALUE s_io_writev(VALUE klass, VALUE fd, VALUE ary) {
+   ssize_t result;
+   struct iovec *iov;
+   int iovcnt;
+
+   ARY2IOVEC(iov, iovcnt, ary);
+
+   result = writev(NUM2INT(fd), iov, iovcnt);
+   if(result == -1)
+      rb_sys_fail("writev");
+
+   return LONG2NUM(result);
+}
+#endif
+
 /* Adds the IO.closefrom, IO.fdwalk class methods, as well as the IO#directio
  * and IO#directio? instance methods (if supported on your platform).
  */
@@ -371,6 +437,8 @@ void Init_extra(){
    rb_define_const(rb_cIO, "DIRECT", UINT2NUM(O_DIRECT));
 #endif
 
+   rb_define_const(rb_cIO, "IOV_MAX", LONG2NUM(IOV_MAX));
+
 #ifdef HAVE_PREAD
    rb_define_singleton_method(rb_cIO, "pread", s_io_pread, 3);
    rb_define_singleton_method(rb_cIO, "pread_ptr", s_io_pread_ptr, 3);
@@ -378,6 +446,10 @@ void Init_extra(){
 
 #ifdef HAVE_PWRITE
    rb_define_singleton_method(rb_cIO, "pwrite", s_io_pwrite, 3);
+#endif
+
+#ifdef HAVE_WRITEV
+   rb_define_singleton_method(rb_cIO, "writev", s_io_writev, 2);
 #endif
 
    /* 1.2.1: The version of this library. This a string. */
