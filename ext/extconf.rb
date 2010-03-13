@@ -14,6 +14,7 @@ have_func('pread')
 have_func('pwrite')
 have_func('writev')
 have_func('rb_str_set_len', 'ruby.h')
+have_func('rb_thread_blocking_region')
 
 case Config::CONFIG['host_os']
 when /darwin/i

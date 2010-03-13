@@ -31,6 +31,32 @@
 #endif
 #endif
 
+#ifndef HAVE_RB_THREAD_BLOCKING_REGION
+/*
+ * partial emulation of the 1.9 rb_thread_blocking_region under 1.8,
+ * this is enough to ensure signals are processed safely when doing I/O
+ * to a slow device, but doesn't actually ensure threads can be
+ * scheduled fairly in 1.8
+ */
+#include <rubysig.h>
+#define RUBY_UBF_IO ((rb_unblock_function_t *)-1)
+typedef void rb_unblock_function_t(void *);
+typedef VALUE rb_blocking_function_t(void *);
+static VALUE
+rb_thread_blocking_region(
+   rb_blocking_function_t *fn, void *data1,
+   rb_unblock_function_t *ubf, void *data2)
+{
+   VALUE rv;
+
+   TRAP_BEG;
+   rv = fn(data1);
+   TRAP_END;
+
+   return rv;
+}
+#endif
+
 #ifndef RSTRING_PTR
 #define RSTRING_PTR(v) (RSTRING(v)->ptr)
 #define RSTRING_LEN(v) (RSTRING(v)->len)
@@ -385,6 +411,19 @@ static VALUE s_io_pwrite(VALUE klass, VALUE v_fd, VALUE v_buf, VALUE v_offset){
    } while (0)
 
 #if defined(HAVE_WRITEV)
+struct writev_args {
+   int fd;
+   struct iovec *iov;
+   int iovcnt;
+};
+
+static VALUE nogvl_writev(void *ptr)
+{
+   struct writev_args *args = ptr;
+
+   return (VALUE)writev(args->fd, args->iov, args->iovcnt);
+}
+
 /*
  * IO.writev(fd, %w(hello world))
  *
@@ -398,12 +437,13 @@ static VALUE s_io_pwrite(VALUE klass, VALUE v_fd, VALUE v_buf, VALUE v_offset){
  */
 static VALUE s_io_writev(VALUE klass, VALUE fd, VALUE ary) {
    ssize_t result;
-   struct iovec *iov;
-   int iovcnt;
+   struct writev_args args;
 
-   ARY2IOVEC(iov, iovcnt, ary);
+   args.fd = NUM2INT(fd);
+   ARY2IOVEC(args.iov, args.iovcnt, ary);
 
-   result = writev(NUM2INT(fd), iov, iovcnt);
+   result = (ssize_t)
+               rb_thread_blocking_region(nogvl_writev, &args, RUBY_UBF_IO, 0);
    if(result == -1)
       rb_sys_fail("writev");
 
