@@ -330,7 +330,7 @@ static VALUE s_io_pread(VALUE klass, VALUE v_fd, VALUE v_nbyte, VALUE v_offset){
 
    if (nread < 0)
       rb_sys_fail("pread");
-   if (nread != nbyte)
+   if ((size_t)nread != nbyte)
       rb_str_set_len(str, nread);
 
    return str;
@@ -482,7 +482,7 @@ static VALUE s_io_writev(VALUE klass, VALUE fd, VALUE ary) {
              * partially written iov,
              * modify and retry with current iovec in front
              */
-            if (new_iov->iov_len > w) {
+            if (new_iov->iov_len > (size_t)w) {
                new_iov->iov_len -= w;
                new_iov->iov_base += w;
                break;
