@@ -483,8 +483,10 @@ static VALUE s_io_writev(VALUE klass, VALUE fd, VALUE ary) {
              * modify and retry with current iovec in front
              */
             if (new_iov->iov_len > (size_t)w) {
+               VALUE base = (VALUE)new_iov->iov_base;
+
                new_iov->iov_len -= w;
-               new_iov->iov_base += w;
+               new_iov->iov_base = (void *)(base + w);
                break;
             }
 
