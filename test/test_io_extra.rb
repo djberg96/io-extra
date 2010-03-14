@@ -123,7 +123,7 @@ class TC_IO_Extra < Test::Unit::TestCase
       [ true, false ].each do |nonblock|
          [ [ 512, 512 ], [ 131073, 3 ], [ 4098, 64 ] ].each do |(bs,count)|
             rd, wr = IO.pipe
-            wr.nonblock = true
+            wr.nonblock = nonblock
             buf = File.open("/dev/urandom", "rb") { |fp| fp.sysread(bs) }
             vec = count.times.map { buf }
             pid = fork do
