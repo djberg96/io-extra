@@ -115,7 +115,9 @@ class TC_IO_Extra < Test::Unit::TestCase
 
    def test_writev_retry
       empty = ""
-      empty.force_encoding(:binary) if empty.respond_to?(:force_encoding)
+      if empty.respond_to?(:force_encoding)
+        empty.force_encoding(Encoding::BINARY)
+      end
 
       # bs * count should be > PIPE_BUF
       [ true, false ].each do |nonblock|
