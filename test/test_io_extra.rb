@@ -125,7 +125,7 @@ class TC_IO_Extra < Test::Unit::TestCase
             rd, wr = IO.pipe
             wr.nonblock = nonblock
             buf = File.open("/dev/urandom", "rb") { |fp| fp.sysread(bs) }
-            vec = count.times.map { buf }
+            vec = (1..count).map { buf }
             pid = fork do
                wr.close
                tmp = []
