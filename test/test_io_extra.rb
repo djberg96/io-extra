@@ -9,6 +9,7 @@ gem 'test-unit'
 
 require 'test/unit'
 require 'rbconfig'
+require 'io/nonblock'
 require 'io/extra'
 
 class TC_IO_Extra < Test::Unit::TestCase
@@ -53,6 +54,10 @@ class TC_IO_Extra < Test::Unit::TestCase
       omit_if(Config::CONFIG['host_os'] =~ /darwin/i, 'unsupported')
       assert_not_nil(IO::DIRECTIO_ON)
       assert_not_nil(IO::DIRECTIO_OFF)
+   end
+
+   def test_IOV_MAX_constant
+      assert_kind_of(Integer, IO::IOV_MAX)
    end
 
    def test_fdwalk
@@ -102,7 +107,46 @@ class TC_IO_Extra < Test::Unit::TestCase
       assert_respond_to(IO, :pwrite)
       assert_nothing_raised{ IO.pwrite(@fh.fileno, "HAL", 0) }
    end
-  
+
+   def test_writev
+      assert_respond_to(IO, :writev)
+      assert_equal 10, IO.writev(@fh.fileno, %w(hello world))
+   end
+
+   def test_writev_retry
+      empty = ""
+      if empty.respond_to?(:force_encoding)
+        empty.force_encoding(Encoding::BINARY)
+      end
+
+      # bs * count should be > PIPE_BUF
+      [ true, false ].each do |nonblock|
+         [ [ 512, 512 ], [ 131073, 3 ], [ 4098, 64 ] ].each do |(bs,count)|
+            rd, wr = IO.pipe
+            wr.nonblock = nonblock
+            buf = File.open("/dev/urandom", "rb") { |fp| fp.sysread(bs) }
+            vec = count.times.map { buf }
+            pid = fork do
+               wr.close
+               tmp = []
+               sleep 0.1
+               begin
+                  tmp << rd.readpartial(8192, buf)
+               rescue EOFError
+                  break
+               end while true
+               ok = (vec.join(empty) == tmp.join(empty))
+               exit! ok
+            end
+            assert_nothing_raised { rd.close }
+            assert_equal(bs * count, IO.writev(wr.fileno, vec))
+            assert_nothing_raised { wr.close }
+            _, status = Process.waitpid2(pid)
+            assert status.success?
+         end
+      end
+   end
+
    def teardown
       @fh.close rescue nil
       @fh = nil

@@ -14,6 +14,49 @@
 #include <stdint.h>
 #endif
 
+#ifdef HAVE_SYS_UIO_H
+#include <sys/uio.h>
+#endif
+
+#ifdef HAVE_LIMITS_H
+#include <limits.h>
+#endif
+
+#if !defined(IOV_MAX)
+#if defined(_SC_IOV_MAX)
+#define IOV_MAX (sysconf(_SC_IOV_MAX))
+#else
+/* assume infinity, or let the syscall return with error ... */
+#define IOV_MAX INT_MAX
+#endif
+#endif
+
+#ifndef HAVE_RB_THREAD_BLOCKING_REGION
+/*
+ * partial emulation of the 1.9 rb_thread_blocking_region under 1.8,
+ * this is enough to ensure signals are processed safely when doing I/O
+ * to a slow device, but doesn't actually ensure threads can be
+ * scheduled fairly in 1.8
+ */
+#include <rubysig.h>
+#define RUBY_UBF_IO ((rb_unblock_function_t *)-1)
+typedef void rb_unblock_function_t(void *);
+typedef VALUE rb_blocking_function_t(void *);
+static VALUE
+rb_thread_blocking_region(
+   rb_blocking_function_t *fn, void *data1,
+   rb_unblock_function_t *ubf, void *data2)
+{
+   VALUE rv;
+
+   TRAP_BEG;
+   rv = fn(data1);
+   TRAP_END;
+
+   return rv;
+}
+#endif
+
 #ifndef RSTRING_PTR
 #define RSTRING_PTR(v) (RSTRING(v)->ptr)
 #define RSTRING_LEN(v) (RSTRING(v)->len)
@@ -287,7 +330,7 @@ static VALUE s_io_pread(VALUE klass, VALUE v_fd, VALUE v_nbyte, VALUE v_offset){
 
    if (nread < 0)
       rb_sys_fail("pread");
-   if (nread != nbyte)
+   if ((size_t)nread != nbyte)
       rb_str_set_len(str, nread);
 
    return str;
@@ -345,6 +388,121 @@ static VALUE s_io_pwrite(VALUE klass, VALUE v_fd, VALUE v_buf, VALUE v_offset){
 }
 #endif
 
+/* this can't be a function since we use alloca() */
+#define ARY2IOVEC(iov,iovcnt,expect,ary) \
+   do { \
+      VALUE *cur; \
+      struct iovec *tmp; \
+      long n; \
+      if (TYPE(ary) != T_ARRAY) \
+         rb_raise(rb_eArgError, "must be an array of strings"); \
+      cur = RARRAY_PTR(ary); \
+      n = RARRAY_LEN(ary); \
+      if (n > IOV_MAX) \
+         rb_raise(rb_eArgError, "array is larger than IOV_MAX"); \
+      iov = tmp = alloca(sizeof(struct iovec) * n); \
+      expect = 0; \
+      iovcnt = (int)n; \
+      for (; --n >= 0; tmp++, cur++) { \
+         if (TYPE(*cur) != T_STRING) \
+            rb_raise(rb_eArgError, "must be an array of strings"); \
+         tmp->iov_base = RSTRING_PTR(*cur); \
+         tmp->iov_len = RSTRING_LEN(*cur); \
+         expect += tmp->iov_len; \
+      } \
+   } while (0)
+
+#if defined(HAVE_WRITEV)
+struct writev_args {
+   int fd;
+   struct iovec *iov;
+   int iovcnt;
+};
+
+static VALUE nogvl_writev(void *ptr)
+{
+   struct writev_args *args = ptr;
+
+   return (VALUE)writev(args->fd, args->iov, args->iovcnt);
+}
+
+/*
+ * IO.writev(fd, %w(hello world))
+ *
+ * This method writes the contents of an array of strings to the given +fd+.
+ * It can be useful to avoid generating a temporary string via Array#join
+ * when writing out large arrays of strings.
+ *
+ * The given array should have fewer elements than the IO::IOV_MAX constant.
+ *
+ * Returns the number of bytes written.
+ */
+static VALUE s_io_writev(VALUE klass, VALUE fd, VALUE ary) {
+   ssize_t result = 0;
+   ssize_t left;
+   struct writev_args args;
+
+   args.fd = NUM2INT(fd);
+   ARY2IOVEC(args.iov, args.iovcnt, left, ary);
+
+   for(;;) {
+      ssize_t w = (ssize_t)rb_thread_blocking_region(nogvl_writev, &args,
+                                                     RUBY_UBF_IO, 0);
+
+      if(w == -1) {
+         if (rb_io_wait_writable(args.fd)) {
+            continue;
+         } else {
+            if (result > 0) {
+               /*
+                * unlikely to hit this case, return the already written bytes,
+                * we'll let the next write (or close) fail instead
+                */
+               break;
+            }
+            rb_sys_fail("writev");
+         }
+      }
+
+      result += w;
+      if(w == left) {
+         break;
+      } else { /* partial write, this can get tricky */
+         int i;
+         struct iovec *new_iov = args.iov;
+
+         left -= w;
+
+         /* skip over iovecs we've already written completely */
+         for (i = 0; i < args.iovcnt; i++, new_iov++) {
+            if (w == 0)
+               break;
+
+            /*
+             * partially written iov,
+             * modify and retry with current iovec in front
+             */
+            if (new_iov->iov_len > (size_t)w) {
+               VALUE base = (VALUE)new_iov->iov_base;
+
+               new_iov->iov_len -= w;
+               new_iov->iov_base = (void *)(base + w);
+               break;
+            }
+
+            w -= new_iov->iov_len;
+         }
+
+         /* retry without the already-written iovecs */
+         args.iovcnt -= i;
+         args.iov = new_iov;
+      }
+   }
+
+   return LONG2NUM(result);
+}
+#endif
+
 /* Adds the IO.closefrom, IO.fdwalk class methods, as well as the IO#directio
  * and IO#directio? instance methods (if supported on your platform).
  */
@@ -371,6 +529,8 @@ void Init_extra(){
    rb_define_const(rb_cIO, "DIRECT", UINT2NUM(O_DIRECT));
 #endif
 
+   rb_define_const(rb_cIO, "IOV_MAX", LONG2NUM(IOV_MAX));
+
 #ifdef HAVE_PREAD
    rb_define_singleton_method(rb_cIO, "pread", s_io_pread, 3);
    rb_define_singleton_method(rb_cIO, "pread_ptr", s_io_pread_ptr, 3);
@@ -378,6 +538,10 @@ void Init_extra(){
 
 #ifdef HAVE_PWRITE
    rb_define_singleton_method(rb_cIO, "pwrite", s_io_pwrite, 3);
+#endif
+
+#ifdef HAVE_WRITEV
+   rb_define_singleton_method(rb_cIO, "writev", s_io_writev, 2);
 #endif
 
    /* 1.2.1: The version of this library. This a string. */
