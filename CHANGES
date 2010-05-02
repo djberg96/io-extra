@@ -1,3 +1,6 @@
+== 1.2.3 - ???
+* Added archive tasks to the Rakefile.
+
 == 1.2.2 - 1-May-2010
 * Added the IO.writev method which allows you to write arrays without
   requiring an Array#join call, i.e. "gather write". Thanks go to Eric
