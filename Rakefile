@@ -54,6 +54,33 @@ namespace :gem do
   end
 end
 
+namespace :archive do
+  spec = eval(IO.read('io-extra.gemspec'))
+  file = "io-extra-#{spec.version}"
+
+  desc 'Create an io-extra tarball.'
+  task :tar do
+    file = file + ".tar"
+    cmd  = "git archive --format=tar --prefix=#{file}/ -o #{file} HEAD"
+    sh cmd
+  end
+
+  desc 'Create a gzipped tarball for io-extra'
+  task :gz => [:tar] do
+    sh "gzip #{file}"
+  end
+
+  desc 'Create a bzip2 tarball for io-extra'
+  task :bz2 => [:tar] do
+    sh "bzip2 #{file}"
+  end
+
+  desc 'Create a zipped tarball for io-extra'
+  task :zip do
+    sh "git archive --format=zip --prefix=#{file}/ -o #{file}.zip HEAD"
+  end
+end
+
 desc "Run the example io-extra program"
 task :example => [:build] do
   ruby '-Iext examples/example_io_extra.rb'
