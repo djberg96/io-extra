@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   end
    
   spec.name       = 'io-extra'
-  spec.version    = '1.2.1'
+  spec.version    = '1.2.2'
   spec.author     = 'Daniel J. Berger'
   spec.license    = 'Artistic 2.0'
   spec.email      = 'djberg96@gmail.com'
