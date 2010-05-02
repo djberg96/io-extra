@@ -19,6 +19,7 @@ task :clean do
     build_file = File.join(Dir.pwd, 'io', 'extra.' + Config::CONFIG['DLEXT'])
     File.delete(build_file) if File.exists?(build_file)
   end
+  Dir['*.gem'].each{ |f| File.delete(f) }
 end
 
 desc "Build the io-extra library (but don't install it)"
