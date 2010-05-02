@@ -40,14 +40,14 @@ task :install => [:build] do
 end
 
 namespace :gem do
-  desc 'Build the io-extra gem'
-  task :build do
+  desc 'Create the io-extra gem'
+  task :create do
     spec = eval(IO.read('io-extra.gemspec'))
     Gem::Builder.new(spec).build
   end
 
   desc "Install the io-extra library as a gem"
-  task :install => [:build] do
+  task :install => [:create] do
     file = Dir["io-extra*.gem"].last
     sh "gem install #{file}"
   end
