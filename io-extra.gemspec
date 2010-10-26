@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   end
    
   spec.name       = 'io-extra'
-  spec.version    = '1.2.2'
+  spec.version    = '1.2.3'
   spec.author     = 'Daniel J. Berger'
   spec.license    = 'Artistic 2.0'
   spec.email      = 'djberg96@gmail.com'
@@ -28,11 +28,11 @@ Gem::Specification.new do |spec|
   spec.rubyforge_project = 'shards'
   spec.required_ruby_version = '>= 1.8.6'
 
-  spec.add_development_dependency('test-unit', '>= 2.0.3')
+  spec.add_development_dependency('test-unit', '>= 2.1.1')
    
   spec.description = <<-EOF
-    Adds the IO.closefrom, IO.fdwalk, IO.pread, IO.pread_ptr, and IO.pwrite
-    class methods as well as the IO#directio and IO#directio? instance
-    methods (for those platforms that support them).
+    Adds the IO.closefrom, IO.fdwalk, IO.pread, IO.pread_ptr, IO.pwrite, and
+    IO.writev singleton methods as well as the IO#directio and IO#directio?
+    instance methods (for those platforms that support them).
   EOF
 end
