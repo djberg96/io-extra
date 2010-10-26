@@ -1,6 +1,7 @@
 = Description
   The io-extra library provides a few extra IO methods that you may find
-  handy. They are IO.closefrom, IO.fdwalk, IO#directio? and IO#directio=.
+  handy. They are IO.closefrom, IO.fdwalk, IO.writev, IO#directio? and
+  IO#directio=.
 	
   This library is not supported on MS Windows.
 
@@ -21,6 +22,9 @@
     p handle
     p handle.fileno
   }
+
+  # Write an array to an IO object efficiently
+  IO.writev(fh.fileno, %w[a b c])
 
 = Developer's Notes
   You might be wondering what the difference is between my implementation of

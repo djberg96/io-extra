@@ -1,5 +1,7 @@
 == 1.2.3 - ???
-* Added archive tasks to the Rakefile.
+* Documentation updates to the README.
+* Updates to the Rakefile, including archive tasks, a default task, and
+  tweaks to the clean task.
 
 == 1.2.2 - 1-May-2010
 * Added the IO.writev method which allows you to write arrays without

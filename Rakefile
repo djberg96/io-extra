@@ -10,16 +10,17 @@ end
 
 desc "Clean the build files for the io-extra source"
 task :clean do
-  FileUtils.rm_rf('io') if File.exists?('io')
+  Dir['*.gem'].each{ |f| File.delete(f) }
+  Dir['**/*.rbc'].each{ |f| File.delete(f) } # Rubinius
+  rm_rf('io') if File.exists?('io')
+
   Dir.chdir('ext') do
     sh 'make distclean' if File.exists?('extra.o')
-
-    FileUtils.rm_rf('extra/extra.c') if File.exists?('extra.c')
-
+    rm_rf('extra/extra.c') if File.exists?('extra.c')
+    rm_rf('conftest.dSYM') if File.exists?('conftest.dSYM') # OS X
     build_file = File.join(Dir.pwd, 'io', 'extra.' + Config::CONFIG['DLEXT'])
     File.delete(build_file) if File.exists?(build_file)
   end
-  Dir['*.gem'].each{ |f| File.delete(f) }
 end
 
 desc "Build the io-extra library (but don't install it)"
@@ -33,16 +34,9 @@ task :build => [:clean] do
   end
 end
 
-desc "Install the io-extra library (non-gem)"
-task :install => [:build] do
-  Dir.chdir('ext') do
-    sh 'make install'
-  end
-end
-
 namespace :gem do
   desc 'Create the io-extra gem'
-  task :create do
+  task :create => [:clean] do
     spec = eval(IO.read('io-extra.gemspec'))
     Gem::Builder.new(spec).build
   end
@@ -87,8 +81,10 @@ task :example => [:build] do
 end
 
 Rake::TestTask.new do |t|
-   task :test => :build
-   t.libs << 'ext'
-   t.verbose = true
-   t.warning = true
+  task :test => :build
+  t.libs << 'ext'
+  t.verbose = true
+  t.warning = true
 end
+
+task :default => :test
