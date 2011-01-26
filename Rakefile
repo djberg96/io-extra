@@ -2,25 +2,21 @@ require 'rake'
 require 'rake/clean'
 require 'rake/testtask'
 require 'rbconfig'
+include Config
 
-if Config::CONFIG['host_os'] =~ /mswin|win32|dos|cygwin|mingw/i
+CLEAN.include(
+  '**/*.gem',               # Gem files
+  '**/*.rbc',               # Rubinius
+  '**/*.o',                 # C object file
+  '**/*.log',               # Ruby extension build log
+  '**/Makefile',            # C Makefile
+  '**/conftest.dSYM',       # OS X build directory
+  "**/*.#{CONFIG['DLEXT']}" # C shared object
+)
+
+if File::ALT_SEPARATOR
   STDERR.puts 'Not supported on this platform. Exiting.'
   exit(-1)
-end
-
-desc "Clean the build files for the io-extra source"
-task :clean do
-  Dir['*.gem'].each{ |f| File.delete(f) }
-  Dir['**/*.rbc'].each{ |f| File.delete(f) } # Rubinius
-  rm_rf('io') if File.exists?('io')
-
-  Dir.chdir('ext') do
-    sh 'make distclean' if File.exists?('extra.o')
-    rm_rf('extra/extra.c') if File.exists?('extra.c')
-    rm_rf('conftest.dSYM') if File.exists?('conftest.dSYM') # OS X
-    build_file = File.join(Dir.pwd, 'io', 'extra.' + Config::CONFIG['DLEXT'])
-    File.delete(build_file) if File.exists?(build_file)
-  end
 end
 
 desc "Build the io-extra library (but don't install it)"
@@ -28,7 +24,7 @@ task :build => [:clean] do
   Dir.chdir('ext') do
     ruby 'extconf.rb'
     sh 'make'
-    build_file = File.join(Dir.pwd, 'extra.' + Config::CONFIG['DLEXT'])
+    build_file = File.join(Dir.pwd, 'extra.' + CONFIG['DLEXT'])
     Dir.mkdir('io') unless File.exists?('io')
     FileUtils.cp(build_file, 'io')
   end
