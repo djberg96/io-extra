@@ -314,6 +314,20 @@ static VALUE io_set_directio(VALUE self, VALUE v_advice){
 #endif
 
 #ifdef HAVE_PREAD
+struct pread_args {
+   int fd;
+   void *buf;
+   size_t nbyte;
+   off_t offset;
+};
+
+static VALUE nogvl_pread(void *ptr)
+{
+   struct pread_args *args = ptr;
+
+   return (VALUE)pread(args->fd, args->buf, args->nbyte, args->offset);
+}
+
 /*
  * IO.pread(fd, length, offset)
  *
@@ -321,16 +335,22 @@ static VALUE io_set_directio(VALUE self, VALUE v_advice){
  * position in the file without changing the file pointer. And unlike IO.read,
  * the +fd+, +length+ and +offset+ arguments are all mandatory.
  */
-static VALUE s_io_pread(VALUE klass, VALUE v_fd, VALUE v_nbyte, VALUE v_offset){
-   int fd = NUM2INT(v_fd);
-   size_t nbyte = NUM2ULONG(v_nbyte);
-   off_t offset = NUM2OFFT(v_offset);
-   VALUE str = rb_str_new(NULL, nbyte);
-   ssize_t nread = pread(fd, RSTRING_PTR(str), nbyte, offset);
+static VALUE s_io_pread(VALUE klass, VALUE fd, VALUE nbyte, VALUE offset){
+   struct pread_args args;
+   VALUE str;
+   ssize_t nread;
 
-   if (nread < 0)
+   args.fd = NUM2INT(fd);
+   args.nbyte = NUM2ULONG(nbyte);
+   args.offset = NUM2OFFT(offset);
+   str = rb_str_new(NULL, args.nbyte);
+   args.buf = RSTRING_PTR(str);
+
+   nread = (ssize_t)rb_thread_blocking_region(nogvl_pread, &args, RUBY_UBF_IO, 0);
+
+   if (nread == -1)
       rb_sys_fail("pread");
-   if ((size_t)nread != nbyte)
+   if ((size_t)nread != args.nbyte)
       rb_str_set_len(str, nread);
 
    return str;
@@ -360,6 +380,20 @@ static VALUE s_io_pread_ptr(VALUE klass, VALUE v_fd, VALUE v_nbyte, VALUE v_offs
 #endif
 
 #ifdef HAVE_PWRITE
+struct pwrite_args {
+   int fd;
+   const void *buf;
+   size_t nbyte;
+   off_t offset;
+};
+
+static VALUE nogvl_pwrite(void *ptr)
+{
+   struct pwrite_args *args = ptr;
+
+   return (VALUE)pwrite(args->fd, args->buf, args->nbyte, args->offset);
+}
+
 /*
  * IO.pwrite(fd, buf, offset)
  *
@@ -371,15 +405,16 @@ static VALUE s_io_pread_ptr(VALUE klass, VALUE v_fd, VALUE v_nbyte, VALUE v_offs
  *
  * Returns the number of bytes written.
  */
-static VALUE s_io_pwrite(VALUE klass, VALUE v_fd, VALUE v_buf, VALUE v_offset){
+static VALUE s_io_pwrite(VALUE klass, VALUE fd, VALUE buf, VALUE offset){
    ssize_t result;
+   struct pwrite_args args;
 
-   result = pwrite(
-      NUM2INT(v_fd),
-      RSTRING_PTR(v_buf),
-      RSTRING_LEN(v_buf),
-      NUM2OFFT(v_offset)
-   );
+   args.fd = NUM2INT(fd);
+   args.buf = RSTRING_PTR(buf);
+   args.nbyte = RSTRING_LEN(buf);
+   args.offset = NUM2OFFT(offset);
+
+   result = (ssize_t)rb_thread_blocking_region(nogvl_pwrite, &args, RUBY_UBF_IO, 0);
 
    if(result == -1)
       rb_sys_fail("pwrite");
