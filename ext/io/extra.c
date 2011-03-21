@@ -324,7 +324,7 @@ static VALUE io_set_directio(VALUE self, VALUE v_advice){
 static VALUE s_io_pread(VALUE klass, VALUE v_fd, VALUE v_nbyte, VALUE v_offset){
    int fd = NUM2INT(v_fd);
    size_t nbyte = NUM2ULONG(v_nbyte);
-   off_t offset = NUM2ULONG(v_offset);
+   off_t offset = NUM2OFFT(v_offset);
    VALUE str = rb_str_new(NULL, nbyte);
    ssize_t nread = pread(fd, RSTRING_PTR(str), nbyte, offset);
 
@@ -349,7 +349,7 @@ static VALUE s_io_pread(VALUE klass, VALUE v_fd, VALUE v_nbyte, VALUE v_offset){
 static VALUE s_io_pread_ptr(VALUE klass, VALUE v_fd, VALUE v_nbyte, VALUE v_offset){
    int fd = NUM2INT(v_fd);
    size_t nbyte = NUM2ULONG(v_nbyte);
-   off_t offset = NUM2ULONG(v_offset);
+   off_t offset = NUM2OFFT(v_offset);
    uintptr_t* vector = malloc(nbyte + 1);
 
    if(pread(fd, vector, nbyte, offset) == -1)
@@ -378,7 +378,7 @@ static VALUE s_io_pwrite(VALUE klass, VALUE v_fd, VALUE v_buf, VALUE v_offset){
       NUM2INT(v_fd),
       RSTRING_PTR(v_buf),
       RSTRING_LEN(v_buf),
-      NUM2INT(v_offset)
+      NUM2OFFT(v_offset)
    );
 
    if(result == -1)
