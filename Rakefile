@@ -76,6 +76,13 @@ task :example => [:build] do
   ruby '-Iext examples/example_io_extra.rb'
 end
 
+namespace :example do
+  desc "Run the IO.pread example program."
+  task :pread do
+    ruby '-Iext examples/example_io_extra.rb'
+  end
+end
+
 Rake::TestTask.new do |t|
   task :test => :build
   t.libs << 'ext'

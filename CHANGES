@@ -1,3 +1,8 @@
+== 1.2.4 - ???
+* Use NUM2OFFT where appropriate. Fixes potential 32 vs 64 bit issues. Thanks
+  go to Eric Wong for the patch.
+* Added an example program for IO.pread, and a corresponding Rake task.
+
 == 1.2.3 - 25-Oct-2010
 * Documentation updates to the README.
 * Updates to the Rakefile, including archive tasks, a default task, and
