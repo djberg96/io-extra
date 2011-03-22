@@ -16,7 +16,7 @@ have_func('writev')
 have_func('rb_str_set_len', 'ruby.h')
 have_func('rb_thread_blocking_region')
 
-case Config::CONFIG['host_os']
+case RbConfig::CONFIG['host_os']
 when /darwin/i
    $CPPFLAGS += " -D_MACOS"
 when /linux/i
