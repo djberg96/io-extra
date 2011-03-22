@@ -18,19 +18,19 @@ class TC_IO_Extra < Test::Unit::TestCase
     @fh = File.open(@file, 'w+')
     @fh.puts "The quick brown fox jumped over the lazy dog's back"
   end
-     
+
   def test_version
-    assert_equal('1.2.3', IO::EXTRA_VERSION)
+    assert_equal('1.2.4', IO::EXTRA_VERSION)
   end
 
   def test_direct_constant
-    omit_unless(Config::CONFIG['host_os'] =~ /linux/i, 'Linux-only')
+    omit_unless(RbConfig::CONFIG['host_os'] =~ /linux/i, 'Linux-only')
     assert_equal(040000, IO::DIRECT)
     assert_equal(040000, File::DIRECT)
   end
 
   def test_open_direct
-    omit_unless(Config::CONFIG['host_os'] =~ /linux/i, 'Linux-only')
+    omit_unless(RbConfig::CONFIG['host_os'] =~ /linux/i, 'Linux-only')
     assert_nothing_raised do
       fh = File.open(@fh.path, IO::RDWR|IO::DIRECT)
       fh.close
@@ -38,20 +38,20 @@ class TC_IO_Extra < Test::Unit::TestCase
   end
 
   def test_directio
-    omit_if(Config::CONFIG['host_os'] =~ /darwin/i, 'unsupported')
+    omit_if(RbConfig::CONFIG['host_os'] =~ /darwin/i, 'unsupported')
     assert_respond_to(@fh, :directio?)
     assert_nothing_raised{ @fh.directio? }
   end
 
   def test_directio_set
-    omit_if(Config::CONFIG['host_os'] =~ /darwin/i, 'unsupported')
+    omit_if(RbConfig::CONFIG['host_os'] =~ /darwin/i, 'unsupported')
     assert_respond_to(@fh, :directio=)
     assert_raises(StandardError){ @fh.directio = 99 }
     assert_nothing_raised{ @fh.directio = IO::DIRECTIO_ON }
   end
 
   def test_constants
-    omit_if(Config::CONFIG['host_os'] =~ /darwin/i, 'unsupported')
+    omit_if(RbConfig::CONFIG['host_os'] =~ /darwin/i, 'unsupported')
     assert_not_nil(IO::DIRECTIO_ON)
     assert_not_nil(IO::DIRECTIO_OFF)
   end
@@ -61,7 +61,7 @@ class TC_IO_Extra < Test::Unit::TestCase
   end
 
   def test_fdwalk
-    omit_if(Config::CONFIG['host_os'] =~ /darwin/i, 'unsupported')
+    omit_if(RbConfig::CONFIG['host_os'] =~ /darwin/i, 'unsupported')
     assert_respond_to(IO, :fdwalk)
     assert_nothing_raised{ IO.fdwalk(0){ } }
   end
