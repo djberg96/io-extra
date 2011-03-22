@@ -1,7 +1,9 @@
-== 1.2.4 - ???
+== 1.2.4 - 22-Mar-2011
 * Use NUM2OFFT where appropriate. Fixes potential 32 vs 64 bit issues. Thanks
-  go to Eric Wong for the patch.
+  go to Eric Wong for the spot and patch.
 * Added an example program for IO.pread, and a corresponding Rake task.
+* Config substituted with RbConfig, since the former is apparently going to
+  deprecated in 1.9. Thanks go to Eric Wong for the spot and patch.
 
 == 1.2.3 - 25-Oct-2010
 * Documentation updates to the README.
