@@ -2,13 +2,13 @@ require 'rubygems'
 require 'rbconfig'
 
 Gem::Specification.new do |spec|
-  if RbConfig::CONFIG['host_os'] =~ /mswin|dos|win32|cygwin|mingw/i
+  if RbConfig::CONFIG['host_os'] =~ /mswin|dos|win32|cygwin|mingw|windows/i
     STDERR.puts 'Not supported on this platform. Exiting.'
     exit(-1)
   end
    
   spec.name       = 'io-extra'
-  spec.version    = '1.2.4'
+  spec.version    = '1.2.5'
   spec.author     = 'Daniel J. Berger'
   spec.license    = 'Artistic 2.0'
   spec.email      = 'djberg96@gmail.com'
