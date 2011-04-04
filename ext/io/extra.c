@@ -367,15 +367,17 @@ static VALUE s_io_pread(VALUE klass, VALUE fd, VALUE nbyte, VALUE offset){
  * address with pure Ruby.
  */
 static VALUE s_io_pread_ptr(VALUE klass, VALUE v_fd, VALUE v_nbyte, VALUE v_offset){
-   int fd = NUM2INT(v_fd);
-   size_t nbyte = NUM2ULONG(v_nbyte);
-   off_t offset = NUM2OFFT(v_offset);
-   uintptr_t* vector = malloc(nbyte + 1);
+  int fd = NUM2INT(v_fd);
+  size_t nbyte = NUM2ULONG(v_nbyte);
+  off_t offset = NUM2OFFT(v_offset);
+  uintptr_t* vector = malloc(nbyte + 1);
 
-   if(pread(fd, vector, nbyte, offset) == -1)
-      rb_sys_fail("pread");
+  if(pread(fd, vector, nbyte, offset) == -1){
+    free(vector);
+    rb_sys_fail("pread");
+  }
 
-   return ULL2NUM(vector[0]);
+  return ULL2NUM(vector[0]);
 }
 #endif
 
