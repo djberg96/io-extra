@@ -1,3 +1,8 @@
+== 1.2.6 - ???
+* Fixed a potential memory leak in the pread_ptr method where malloc'ed
+  memory was not freed if the pread function call failed. Thanks go to
+  Eric Wong for the spot.
+
 == 1.2.5 - 23-Mar-2011
 * Use rb_thread_blocking_region internally for IO.pread and IO.pwrite. Thanks
   go to Eric Wong for the patch.
