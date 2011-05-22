@@ -1,7 +1,9 @@
-== 1.2.6 - ???
+== 1.2.6 - 22-May-2011
 * Fixed a potential memory leak in the pread_ptr method where malloc'ed
   memory was not freed if the pread function call failed. Thanks go to
   Eric Wong for the spot.
+* Added the IO#ttyname method.
+* Added the (empty) .gemtest file for test.rubygems.org.
 
 == 1.2.5 - 23-Mar-2011
 * Use rb_thread_blocking_region internally for IO.pread and IO.pwrite. Thanks
