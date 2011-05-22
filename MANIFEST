@@ -8,3 +8,4 @@
 * ext/extconf.rb
 * ext/io/extra.c
 * test/test_io_extra.rb
+*.gemtest

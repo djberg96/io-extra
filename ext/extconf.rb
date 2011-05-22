@@ -15,6 +15,7 @@ have_func('pwrite')
 have_func('writev')
 have_func('rb_str_set_len', 'ruby.h')
 have_func('rb_thread_blocking_region')
+have_func('ttyname')
 
 case RbConfig::CONFIG['host_os']
 when /darwin/i

@@ -20,7 +20,7 @@ class TC_IO_Extra < Test::Unit::TestCase
   end
 
   def test_version
-    assert_equal('1.2.5', IO::EXTRA_VERSION)
+    assert_equal('1.2.6', IO::EXTRA_VERSION)
   end
 
   def test_direct_constant
@@ -145,6 +145,12 @@ class TC_IO_Extra < Test::Unit::TestCase
           assert status.success?
        end
     end
+  end
+
+  def test_ttyname
+    assert_respond_to(@fh, :ttyname)
+    assert_nil(@fh.ttyname)
+    assert_kind_of(String, STDOUT.ttyname)
   end
 
   def teardown

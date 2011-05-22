@@ -540,6 +540,29 @@ static VALUE s_io_writev(VALUE klass, VALUE fd, VALUE ary) {
 }
 #endif
 
+#ifdef HAVE_TTYNAME
+/*
+ * io.ttyname
+ *
+ * Returns the ttyname associated with the IO object, or nil if the IO
+ * object isn't associated with a tty.
+ *
+ * Example:
+ *
+ *  STDOUT.ttyname # => '/dev/ttyp1'
+ */
+static VALUE io_get_ttyname(VALUE self){
+  VALUE v_return = Qnil;
+
+  int fd = NUM2INT(rb_funcall(self, rb_intern("fileno"), 0, 0));
+
+  if(isatty(fd))
+    v_return = rb_str_new2(ttyname(fd));
+
+  return v_return;
+}
+#endif
+
 /* Adds the IO.closefrom, IO.fdwalk class methods, as well as the IO#directio
  * and IO#directio? instance methods (if supported on your platform).
  */
@@ -581,6 +604,10 @@ void Init_extra(){
    rb_define_singleton_method(rb_cIO, "writev", s_io_writev, 2);
 #endif
 
-   /* 1.2.5: The version of this library. This a string. */
-   rb_define_const(rb_cIO, "EXTRA_VERSION", rb_str_new2("1.2.5"));
+#ifdef HAVE_TTYNAME
+  rb_define_method(rb_cIO, "ttyname", io_get_ttyname, 0);
+#endif
+
+   /* 1.2.6: The version of this library. This a string. */
+   rb_define_const(rb_cIO, "EXTRA_VERSION", rb_str_new2("1.2.6"));
 }

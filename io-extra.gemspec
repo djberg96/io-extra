@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   end
    
   spec.name       = 'io-extra'
-  spec.version    = '1.2.5'
+  spec.version    = '1.2.6'
   spec.author     = 'Daniel J. Berger'
   spec.license    = 'Artistic 2.0'
   spec.email      = 'djberg96@gmail.com'
@@ -16,7 +16,7 @@ Gem::Specification.new do |spec|
   spec.summary    = 'Adds extra methods to the IO class.'
   spec.test_file  = 'test/test_io_extra.rb'
   spec.extensions = ['ext/extconf.rb']
-  spec.files      = Dir['**/*'].reject{ |f| f.include?('git') }
+  spec.files      = Dir['**/*'] << '.gemtest'
 
   spec.extra_rdoc_files = [
     'CHANGES',
@@ -32,7 +32,7 @@ Gem::Specification.new do |spec|
    
   spec.description = <<-EOF
     Adds the IO.closefrom, IO.fdwalk, IO.pread, IO.pread_ptr, IO.pwrite, and
-    IO.writev singleton methods as well as the IO#directio and IO#directio?
-    instance methods (for those platforms that support them).
+    IO.writev singleton methods as well as the IO#directio, IO#directio? and
+    IO#ttyname instance methods (for those platforms that support them).
   EOF
 end
