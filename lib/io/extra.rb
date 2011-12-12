@@ -83,11 +83,12 @@ class IO
   # IO.fdwalk(low_fd){ |file| ... }
   #
   # Iterates over each open file descriptor and yields a File object.
-  #--
-  # TODO: Doesn't seem to acknowledge lowfd yet.
   #
   def self.fdwalk(lowfd)
-    func = FFI::Function.new(:int, [:pointer, :int]){ |cd, fd| yield File.new(fd) }
+    func = FFI::Function.new(:int, [:pointer, :int]){ |cd, fd|
+      yield File.new(fd) if fd >= lowfd
+    }
+
     ptr  = FFI::MemoryPointer.new(:int)
     ptr.write_int(lowfd)
 
