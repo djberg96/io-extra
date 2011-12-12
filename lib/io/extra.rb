@@ -52,6 +52,7 @@ class IO
   F_SETFL      = 4        # Set file flags
   O_DIRECT     = 00040000 # Direct disk access hint
 
+  # Used by the writev method.
   class Iovec < FFI::Struct
     layout(:iov_base, :pointer, :iov_len, :int)
   end
@@ -95,6 +96,12 @@ class IO
     bytes
   end
 
+  # Instance method equivalent of IO.writev with an implicit fileno.
+  #
+  def writev(array)
+    IO.writev(fileno, array)
+  end
+
   # IO.pread(fd, length, offset)
   #
   # This method is based on the IO.read method except that it reads from
@@ -118,6 +125,12 @@ class IO
     ptr
   end
 
+  # Instance method equivalent of IO.pread with an implicit fileno.
+  #
+  def pread(length, offset)
+    IO.pread(fileno, length, offset)
+  end
+
   # This method writes the +buffer+, starting at +offset+, to the given +fd+,
   # which must be opened with write permissions.
   #
@@ -134,6 +147,12 @@ class IO
     end
 
     nbytes
+  end
+
+  # Instance method equivalent of IO.pwrite, with an implicit fileno.
+  #
+  def pwrite(buffer, offset)
+    IO.pwrite(fileno, buffer, offset)
   end
 
   # IO.fdwalk(low_fd){ |file| ... }
