@@ -6,6 +6,7 @@ class IO
 
   attach_function :pread_c, :pread, [:int, :pointer, :size_t, :off_t], :size_t
   attach_function :pwrite_c, :pwrite, [:int, :pointer, :size_t, :off_t], :size_t
+  attach_function :writev_c, :writev, [:int, :pointer, :int], :size_t
   attach_function :strerror, [:int], :string
 
   begin
@@ -32,6 +33,7 @@ class IO
     # Not supported
   end
 
+  # TODO: This needs work
   begin
     attach_function :sysconf, [:int], :long
     IOV_MAX = sysconf(77) # SC_IOV_MAX from sys/unistd.h
@@ -49,6 +51,49 @@ class IO
   F_GETFL      = 3        # Get file flags
   F_SETFL      = 4        # Set file flags
   O_DIRECT     = 00040000 # Direct disk access hint
+
+  class Iovec < FFI::Struct
+    layout(:iov_base, :pointer, :iov_len, :int)
+  end
+
+  # IO.writev(fd, %w[hello world])
+  #
+  # This method writes the contents of an array of strings to the given +fd+.
+  # It can be useful to avoid generating a temporary string via Array#join
+  # when writing out large arrays of strings.
+  #
+  # The given array should have fewer elements than the IO::IOV_MAX constant.
+  #
+  # Returns the number of bytes written.
+  #
+  def self.writev(fd, array)
+    if array.size > IO::IOV_MAX
+      raise ArgumentError, "array size exceeds IO::IOV_MAX"
+    end
+
+    iov = FFI::MemoryPointer.new(Iovec, array.size)
+
+    array.each_with_index{ |string, i|
+      struct = Iovec.new
+
+      # FFI::Struct won't let us assign strings directly, so...
+      char_ptr = FFI::MemoryPointer.new(:char, string.size)
+      char_ptr.write_string(string)
+
+      struct[:iov_base] = char_ptr
+      struct[:iov_len]  = string.length
+
+      iov[i].put_bytes(0, struct.to_ptr.get_bytes(0, Iovec.size))
+    }
+
+    bytes = writev_c(fd, iov, array.size)
+
+    if bytes == -1
+      raise "writev function failed: " + strerror(FFI.errno)
+    end
+
+    bytes
+  end
 
   # IO.pread(fd, length, offset)
   #
