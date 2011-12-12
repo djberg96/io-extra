@@ -88,7 +88,8 @@ class IO
   #
   def self.fdwalk(lowfd)
     func = FFI::Function.new(:int, [:pointer, :int]){ |cd, fd| yield File.new(fd) }
-    ptr  = FFI::MemoryPointer.new(lowfd)
+    ptr  = FFI::MemoryPointer.new(:int)
+    ptr.write_int(lowfd)
 
     fdwalk_c(func, ptr)
   end
