@@ -1,4 +1,5 @@
 require 'ffi'
+require 'fcntl'
 
 class IO
   extend FFI::Library
@@ -56,13 +57,8 @@ class IO
 
   DIRECTIO_OFF = 0        # Turn off directio
   DIRECTIO_ON  = 1        # Turn on directio
-  F_GETFD      = 1        # Get file descriptor flags
-  F_GETFL      = 3        # Get file flags
-  F_SETFL      = 4        # Set file flags
-  O_DIRECT     = 00040000 # Direct disk access hint
 
-  # For public consumption
-  DIRECT = O_DIRECT
+  DIRECT = 00040000 # Direct disk access hint
 
   # Used by the writev method.
   class Iovec < FFI::Struct
@@ -185,7 +181,7 @@ class IO
       fdwalk_c(func, ptr)
     else
       0.upto(open_max){ |fd|
-        next if fcntl_c(fd, F_GETFD) < 0
+        next if fcntl_c(fd, Fcntl::F_GETFD) < 0
         func.call(ptr, fd)
       }
     end
@@ -235,15 +231,15 @@ class IO
         raise "directio function call failed: " + strerror(FFI.errno)
       end
     else
-      flags = fcntl(F_GETFL)
+      flags = fcntl(Fcntl::F_GETFL)
 
       if advice == DIRECTIO_OFF
-        if flags & O_DIRECT > 0
-          fcntl(F_SETFL, flags & ~O_DIRECT)
+        if flags & DIRECT > 0
+          fcntl(Fcntl::F_SETFL, flags & ~DIRECT)
         end
       else
-        unless flags & O_DIRECT > 0
-          fcntl(F_SETFL, flags | O_DIRECT)
+        unless flags & DIRECT > 0
+          fcntl(Fcntl::F_SETFL, flags | DIRECT)
         end
       end
     end
