@@ -39,10 +39,13 @@ class IO
     IOV_MAX = 16
   end
 
+  # The version of the io-extra library
   EXTRA_VERSION = '1.3.0'
 
-  DIRECTIO_OFF = 0
-  DIRECTIO_ON  = 1
+  # Various internal constants
+
+  DIRECTIO_OFF = 0        # Turn off directio
+  DIRECTIO_ON  = 1        # Turn on directio
   F_GETFL      = 3        # Get file flags
   F_SETFL      = 4        # Set file flags
   O_DIRECT     = 00040000 # Direct disk access hint
@@ -70,6 +73,14 @@ class IO
     ptr
   end
 
+  # This method writes the +buffer+, starting at +offset+, to the given +fd+,
+  # which must be opened with write permissions.
+  #
+  # This is similar to a seek & write in standard Ruby but the difference,
+  # beyond being a singleton method, is that the file pointer is never moved.
+  #
+  # Returns the number of bytes written.
+  #
   def self.pwrite(fd, buffer, offset)
     nbytes = pwrite_c(fd, buffer, buffer.size, offset)
 
@@ -113,6 +124,12 @@ class IO
     isatty ? ttyname_c(fileno) : nil
   end
 
+  # Sets the advice for the current file descriptor using directio(). Valid
+  # values are IO::DIRECTIO_ON and IO::DIRECTIO_OFF. See the directio(3c) man
+  # page for more information.
+  #
+  # All file descriptors start at DIRECTIO_OFF, unless your filesystem has
+  # been mounted using 'forcedirectio' (and supports that option).
   #--
   # Linus Torvalds on O_DIRECT: https://lkml.org/lkml/2007/1/10/233
   #
@@ -149,6 +166,9 @@ class IO
     end
   end
 
+  # Returns a boolean value indicating whether or not directio has been set
+  # for the current filehandle.
+  #
   def directio?
     @directio || false
   end
