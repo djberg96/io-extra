@@ -26,6 +26,19 @@ class IO
     # Not supported
   end
 
+  begin
+    attach_function :fdwalk_c, :fdwalk, [:pointer, :pointer], :void
+  rescue FFI::NotFoundError
+    # Not supported
+  end
+
+  begin
+    attach_function :sysconf, [:int], :long
+    IOV_MAX = sysconf(77) # SC_IOV_MAX from sys/unistd.h
+  rescue FFI::NotFoundError
+    IOV_MAX = 16
+  end
+
   EXTRA_VERSION = '1.3.0'
 
   DIRECTIO_OFF = 0
@@ -65,6 +78,19 @@ class IO
     end
 
     nbytes
+  end
+
+  # IO.fdwalk(low_fd){ |file| ... }
+  #
+  # Iterates over each open file descriptor and yields a File object.
+  #--
+  # TODO: Doesn't seem to acknowledge lowfd yet.
+  #
+  def self.fdwalk(lowfd)
+    func = FFI::Function.new(:int, [:pointer, :int]){ |cd, fd| yield File.new(fd) }
+    ptr  = FFI::MemoryPointer.new(lowfd)
+
+    fdwalk_c(func, ptr)
   end
 
   # Close all open file descriptors (associated with the current process) that
