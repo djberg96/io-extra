@@ -202,11 +202,14 @@ static int fdwalk(int (*func)(void *data, int fd), void *data){
  * It's up to the user to close it.
  */
 static int close_func(void* lowfd, int fd){
-   VALUE v_args[1];
+  VALUE v_args[1];
 
-   v_args[0] = UINT2NUM(fd);
-   rb_yield(rb_class_new_instance(1, v_args, rb_cFile));
-   return 0;
+  if(fd >= *(int*)lowfd){
+    v_args[0] = UINT2NUM(fd);
+    rb_yield(rb_class_new_instance(1, v_args, rb_cFile));
+  }
+
+  return 0;
 }
 
 /*
@@ -608,6 +611,6 @@ void Init_extra(){
   rb_define_method(rb_cIO, "ttyname", io_get_ttyname, 0);
 #endif
 
-   /* 1.2.6: The version of this library. This a string. */
-   rb_define_const(rb_cIO, "EXTRA_VERSION", rb_str_new2("1.2.6"));
+   /* 1.2.7: The version of this library. This a string. */
+   rb_define_const(rb_cIO, "EXTRA_VERSION", rb_str_new2("1.2.7"));
 }
