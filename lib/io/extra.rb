@@ -13,7 +13,17 @@ class IO
     # Not supported
   end
 
+  begin
+    attach_function :directio, [:int, :int], :int
+  rescue FFI::NotFoundError
+    # Not supported
+  end
+
   EXTRA_VERSION = '1.3.0'
+
+  DIRECTIO_OFF = 0
+  DIRECTIO_ON  = 1
+  F_GETFL      = 3 # Get file flags
 
   # IO.pread(fd, length, offset)
   #
@@ -48,4 +58,30 @@ class IO
   def ttyname
     isatty ? self.class.ttyname_c(fileno) : nil
   end
+
+  def directio=(advice)
+    unless [DIRECTIO_ON, DIRECTIO_OFF, true, false].include?(advice)
+      raise "Invalid value passed to directio="
+    end
+
+    advice = DIRECTIO_ON if advice == true
+    advice = DIRECTIO_OFF if advice == false
+
+    if directio(fileno, advice) < 0
+      raise "directio function call failed: " + strerror(FFI.errno)
+    end
+
+    if advice == DIRECTIO_ON || advice == true
+      @directio = true
+    else
+      @directio = false
+    end
+  end
+
+  def directio?
+    @directio || false
+  end
+
+  alias direct_io? directio?
+  alias direct_io= directio=
 end
