@@ -4,30 +4,11 @@ require 'rake/testtask'
 require 'rbconfig'
 include RbConfig
 
-CLEAN.include(
-  '**/*.gem',               # Gem files
-  '**/*.rbc',               # Rubinius
-  '**/*.o',                 # C object file
-  '**/*.log',               # Ruby extension build log
-  '**/Makefile',            # C Makefile
-  '**/conftest.dSYM',       # OS X build directory
-  "**/*.#{CONFIG['DLEXT']}" # C shared object
-)
+CLEAN.include('**/*.gem', '**/*.rbc')
 
 if File::ALT_SEPARATOR
   STDERR.puts 'Not supported on this platform. Exiting.'
   exit(-1)
-end
-
-desc "Build the io-extra library (but don't install it)"
-task :build => [:clean] do
-  Dir.chdir('ext') do
-    ruby 'extconf.rb'
-    sh 'make'
-    build_file = File.join(Dir.pwd, 'extra.' + CONFIG['DLEXT'])
-    Dir.mkdir('io') unless File.exists?('io')
-    FileUtils.cp(build_file, 'io')
-  end
 end
 
 namespace :gem do
@@ -84,8 +65,6 @@ namespace :example do
 end
 
 Rake::TestTask.new do |t|
-  task :test => :build
-  t.libs << 'ext'
   t.verbose = true
   t.warning = true
 end
