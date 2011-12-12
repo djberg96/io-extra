@@ -19,6 +19,12 @@ class IO
     # Not supported
   end
 
+  begin
+    attach_function :closefrom_c, :closefrom, [:int], :void
+  rescue FFI::NotFoundError
+    # Not supported
+  end
+
   EXTRA_VERSION = '1.3.0'
 
   DIRECTIO_OFF = 0
@@ -46,6 +52,13 @@ class IO
     end
 
     ptr
+  end
+
+  # Close all open file descriptors (associated with the current process) that
+  # are greater than or equal to +fd+.
+  #
+  def self.closefrom(fd)
+    closefrom_c(fd)
   end
 
   # Returns the ttyname associated with the IO object, or nil if the IO
