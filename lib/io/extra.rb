@@ -69,7 +69,7 @@ class IO
   #  STDOUT.ttyname # => '/dev/ttyp1'
   #
   def ttyname
-    isatty ? self.class.ttyname_c(fileno) : nil
+    isatty ? ttyname_c(fileno) : nil
   end
 
   def directio=(advice)
