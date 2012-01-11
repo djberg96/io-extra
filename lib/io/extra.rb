@@ -29,7 +29,9 @@ class IO
 
   DIRECTIO_OFF = 0
   DIRECTIO_ON  = 1
-  F_GETFL      = 3 # Get file flags
+  F_GETFL      = 3        # Get file flags
+  F_SETFL      = 4        # Set file flags
+  O_DIRECT     = 00040000 # Direct disk access hint
 
   # IO.pread(fd, length, offset)
   #
@@ -80,8 +82,22 @@ class IO
     advice = DIRECTIO_ON if advice == true
     advice = DIRECTIO_OFF if advice == false
 
-    if directio(fileno, advice) < 0
-      raise "directio function call failed: " + strerror(FFI.errno)
+    if respond_to?(:directio)
+      if directio(fileno, advice) < 0
+        raise "directio function call failed: " + strerror(FFI.errno)
+      end
+    else
+      flags = fcntl(F_GETFL)
+
+      if advice == DIRECTIO_OFF
+        if flags & O_DIRECT > 0
+          fcntl(F_SETFL, flags & ~O_DIRECT)
+        end
+      else
+        unless flags & O_DIRECT > 0
+          fcntl(F_SETFL, flags | O_DIRECT)
+        end
+      end
     end
 
     if advice == DIRECTIO_ON || advice == true
