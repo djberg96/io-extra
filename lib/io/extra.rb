@@ -5,6 +5,7 @@ class IO
   ffi_lib FFI::Library::LIBC
 
   attach_function :pread_c, :pread, [:int, :pointer, :size_t, :off_t], :size_t
+  attach_function :pwrite_c, :pwrite, [:int, :pointer, :size_t, :off_t], :size_t
   attach_function :strerror, [:int], :string
 
   begin
@@ -54,6 +55,16 @@ class IO
     end
 
     ptr
+  end
+
+  def self.pwrite(fd, buffer, offset)
+    nbytes = pwrite_c(fd, buffer, buffer.size, offset)
+
+    if nbytes == -1
+      raise "pwrite function failed: " + strerror(FFI.errno)
+    end
+
+    nbytes
   end
 
   # Close all open file descriptors (associated with the current process) that
