@@ -4,6 +4,7 @@ class IO
   extend FFI::Library
   ffi_lib FFI::Library::LIBC
 
+  attach_function :close_c, :close, [:int], :int
   attach_function :fcntl_c, :fcntl, [:int, :int, :varargs], :int
   attach_function :pread_c, :pread, [:int, :pointer, :size_t, :off_t], :size_t
   attach_function :pwrite_c, :pwrite, [:int, :pointer, :size_t, :off_t], :size_t
@@ -192,7 +193,11 @@ class IO
   # are greater than or equal to +fd+.
   #
   def self.closefrom(fd)
-    closefrom_c(fd)
+    if method_defined?(:closefrom_c)
+      closefrom_c(fd)
+    else
+      fd.upto(open_max){ |fd| close_c(fd) }
+    end
   end
 
   # Returns the ttyname associated with the IO object, or nil if the IO
