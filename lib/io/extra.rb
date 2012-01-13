@@ -80,6 +80,8 @@ class IO
   # Returns the number of bytes written.
   #
   def self.writev(fd, array)
+    raise TypeError unless array.is_a?(Array)
+
     if array.size > IO::IOV_MAX
       raise ArgumentError, "array size exceeds IO::IOV_MAX"
     end
