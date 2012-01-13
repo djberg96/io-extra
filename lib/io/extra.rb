@@ -33,12 +33,12 @@ class IO
     # Not supported
   end
 
-  # TODO: This needs work
-  begin
-    attach_function :sysconf, [:int], :long
-    IOV_MAX = sysconf(77) # SC_IOV_MAX from sys/unistd.h
-  rescue FFI::NotFoundError
-    IOV_MAX = 16
+  # IOV_MAX is used by the write method.
+  case RbConfig::CONFIG['host_os']
+    when /sunos|solaris/i
+      IOV_MAX = 16
+    else
+      IOV_MAX = 1024
   end
 
   # The version of the io-extra library
