@@ -33,6 +33,12 @@ class IO
     # Not supported
   end
 
+  begin
+    attach_function :sysconf, [:int], :int
+  rescue FFI::NotFoundError
+    # Not supported
+  end
+
   # IOV_MAX is used by the write method.
   case RbConfig::CONFIG['host_os']
     when /sunos|solaris/i
@@ -51,6 +57,9 @@ class IO
   F_GETFL      = 3        # Get file flags
   F_SETFL      = 4        # Set file flags
   O_DIRECT     = 00040000 # Direct disk access hint
+
+  # For public consumption
+  DIRECT = O_DIRECT
 
   # Used by the writev method.
   class Iovec < FFI::Struct
@@ -160,14 +169,17 @@ class IO
   # Iterates over each open file descriptor and yields a File object.
   #
   def self.fdwalk(lowfd)
-    func = FFI::Function.new(:int, [:pointer, :int]){ |cd, fd|
-      yield File.new(fd) if fd >= lowfd
-    }
+    if method_defined?(:fdwalk_c)
+      func = FFI::Function.new(:int, [:pointer, :int]){ |cd, fd|
+        yield File.new(fd) if fd >= lowfd
+      }
 
-    ptr  = FFI::MemoryPointer.new(:int)
-    ptr.write_int(lowfd)
+      ptr  = FFI::MemoryPointer.new(:int)
+      ptr.write_int(lowfd)
 
-    fdwalk_c(func, ptr)
+      fdwalk_c(func, ptr)
+    else
+    end
   end
 
   # Close all open file descriptors (associated with the current process) that
@@ -199,7 +211,7 @@ class IO
   #
   def directio=(advice)
     unless [DIRECTIO_ON, DIRECTIO_OFF, true, false].include?(advice)
-      raise "Invalid value passed to directio="
+      raise ArgumentError, "Invalid value passed to directio="
     end
 
     advice = DIRECTIO_ON if advice == true
@@ -234,7 +246,11 @@ class IO
   # for the current filehandle.
   #
   def directio?
-    @directio || false
+    if defined?(@directio)
+      @directio || false
+    else
+      false
+    end
   end
 
   alias direct_io? directio?
