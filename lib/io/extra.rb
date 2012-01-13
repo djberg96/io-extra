@@ -4,6 +4,7 @@ class IO
   extend FFI::Library
   ffi_lib FFI::Library::LIBC
 
+  attach_function :fcntl_c, :fcntl, [:int, :int, :varargs], :int
   attach_function :pread_c, :pread, [:int, :pointer, :size_t, :off_t], :size_t
   attach_function :pwrite_c, :pwrite, [:int, :pointer, :size_t, :off_t], :size_t
   attach_function :writev_c, :writev, [:int, :pointer, :int], :size_t
@@ -34,7 +35,7 @@ class IO
   end
 
   begin
-    attach_function :sysconf, [:int], :int
+    attach_function :sysconf, [:int], :long
   rescue FFI::NotFoundError
     # Not supported
   end
@@ -54,6 +55,7 @@ class IO
 
   DIRECTIO_OFF = 0        # Turn off directio
   DIRECTIO_ON  = 1        # Turn on directio
+  F_GETFD      = 1        # Get file descriptor flags
   F_GETFL      = 3        # Get file flags
   F_SETFL      = 4        # Set file flags
   O_DIRECT     = 00040000 # Direct disk access hint
@@ -169,16 +171,20 @@ class IO
   # Iterates over each open file descriptor and yields a File object.
   #
   def self.fdwalk(lowfd)
+    func = FFI::Function.new(:int, [:pointer, :int]){ |cd, fd|
+      yield File.new(fd) if fd >= lowfd
+    }
+
+    ptr  = FFI::MemoryPointer.new(:int)
+    ptr.write_int(lowfd)
+
     if method_defined?(:fdwalk_c)
-      func = FFI::Function.new(:int, [:pointer, :int]){ |cd, fd|
-        yield File.new(fd) if fd >= lowfd
-      }
-
-      ptr  = FFI::MemoryPointer.new(:int)
-      ptr.write_int(lowfd)
-
       fdwalk_c(func, ptr)
     else
+      0.upto(open_max){ |fd|
+        next if fcntl_c(fd, F_GETFD) < 0
+        func.call(ptr, fd)
+      }
     end
   end
 
@@ -255,4 +261,14 @@ class IO
 
   alias direct_io? directio?
   alias direct_io= directio=
+
+  private
+
+  def self.open_max
+    if method_defined?(:sysconf)
+      sysconf(4) # _SC_OPEN_MAX
+    else
+      1024 # Common limit
+    end
+  end
 end
