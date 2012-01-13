@@ -19,65 +19,125 @@ class TC_IO_Extra < Test::Unit::TestCase
     @fh.puts "The quick brown fox jumped over the lazy dog's back"
   end
 
-  def test_version
+  test "version constant is set to expected value" do
     assert_equal('1.3.0', IO::EXTRA_VERSION)
   end
 
-  def test_direct_constant
-    omit_unless(RbConfig::CONFIG['host_os'] =~ /linux/i, 'Linux-only')
+  test "DIRECT constant is set to expected value" do
     assert_equal(040000, IO::DIRECT)
     assert_equal(040000, File::DIRECT)
   end
 
-  def test_open_direct
-    omit_unless(RbConfig::CONFIG['host_os'] =~ /linux/i, 'Linux-only')
+  test "opening a file with the DIRECT attribute works as expected" do
     assert_nothing_raised do
       fh = File.open(@fh.path, IO::RDWR|IO::DIRECT)
       fh.close
     end
   end
 
-  def test_directio
-    omit_if(RbConfig::CONFIG['host_os'] =~ /darwin/i, 'unsupported')
+  test "directio? basic functionality" do
     assert_respond_to(@fh, :directio?)
     assert_nothing_raised{ @fh.directio? }
+    assert_boolean(@fh.directio?)
   end
 
-  def test_directio_set
-    omit_if(RbConfig::CONFIG['host_os'] =~ /darwin/i, 'unsupported')
+  test "directio? returns expected value" do
+    fh = File.open(@file)
+    assert_false(fh.directio?)
+    fh.directio = true
+    assert_true(fh.directio?)
+    fh.close
+  end
+
+  test "directio setter basic functionality" do
     assert_respond_to(@fh, :directio=)
-    assert_raises(StandardError){ @fh.directio = 99 }
     assert_nothing_raised{ @fh.directio = IO::DIRECTIO_ON }
+    assert_nothing_raised{ @fh.directio = IO::DIRECTIO_OFF }
   end
 
-  def test_constants
-    omit_if(RbConfig::CONFIG['host_os'] =~ /darwin/i, 'unsupported')
+  test "directio setter accepts boolean arguments" do
+    assert_nothing_raised{ @fh.directio = true }
+    assert_nothing_raised{ @fh.directio = false }
+  end
+
+  test "directio setter raises an ArgumentError if an invalid value is passed" do
+    assert_raise(ArgumentError){ @fh.directio = 99 }
+    assert_raise(ArgumentError){ @fh.directio = [] }
+  end
+
+  test "directio constants are defined" do
     assert_not_nil(IO::DIRECTIO_ON)
     assert_not_nil(IO::DIRECTIO_OFF)
   end
 
-  def test_IOV_MAX_constant
+  test "iov_max constant is defined" do
     assert_kind_of(Integer, IO::IOV_MAX)
+    assert_true(IO::IOV_MAX >= 16)
   end
 
-  def test_fdwalk
-    omit_if(RbConfig::CONFIG['host_os'] =~ /darwin/i, 'unsupported')
+  test "fdwalk basic functionality" do
     assert_respond_to(IO, :fdwalk)
     assert_nothing_raised{ IO.fdwalk(0){ } }
   end
 
-  def test_closefrom
+  test "fdwalk only yields File objects with a fileno >= lowfd" do
+    lowfd = 2
+    IO.fdwalk(lowfd){ |f| assert_true(f.fileno >= lowfd) }
+  end
+
+  test "fdwalk requires a single integer argument" do
+    assert_raise(ArgumentError){ IO.fdwalk }
+    assert_raise(ArgumentError){ IO.fdwalk(1,2) }
+    assert_raise(TypeError){ IO.fdwalk('test') }
+  end
+
+  test "closefrom basic functionality" do
     assert_respond_to(IO, :closefrom)
     assert_nothing_raised{ IO.closefrom(3) }
   end
 
-  def test_pread
-    @fh.close rescue nil
-    @fh = File.open(@file)
-    assert_respond_to(IO, :pread)
-    assert_equal("quick", IO.pread(@fh.fileno, 5, 4))
+  test "closefrom requires a single integer argument" do
+    assert_raise(ArgumentError){ IO.closefrom }
+    assert_raise(ArgumentError){ IO.closefrom(3,4) }
+    assert_raise(TypeError){ IO.closefrom('test') }
   end
 
+  test "pread instance method basic functionality" do
+    assert_respond_to(@fh, :pread)
+    assert_kind_of(FFI::MemoryPointer, @fh.pread(5, 4))
+  end
+
+  test "pread instance method returns the expected string" do
+    @fh.rewind
+    assert_equal("quick", @fh.pread(5,4).read_string)
+  end
+
+  test "pread instance_method requires two integer arguments" do
+    assert_raise(ArgumentError){ @fh.pread }
+    assert_raise(ArgumentError){ @fh.pread(1) }
+    assert_raise(ArgumentError){ @fh.pread(1,2,3) }
+    assert_raise(TypeError){ @fh.pread(5, 'test') }
+  end
+
+  test "pread singleton method basic functionality" do
+    assert_respond_to(IO, :pread)
+    assert_kind_of(FFI::MemoryPointer, IO.pread(@fh.fileno, 5, 4))
+  end
+
+  test "pread singleton method returns the expected string" do
+    @fh.rewind
+    assert_equal("quick", IO.pread(@fh.fileno, 5,4).read_string)
+  end
+
+  test "pread singleton method requires three integer arguments" do
+    assert_raise(ArgumentError){ IO.pread }
+    assert_raise(ArgumentError){ IO.pread(1) }
+    assert_raise(ArgumentError){ IO.pread(1,2) }
+    assert_raise(ArgumentError){ IO.pread(1,2,3,4) }
+    assert_raise(TypeError){ IO.pread(@fh.fileno, 5, 'test') }
+  end
+
+=begin
   def test_pread_binary
     @fh.close rescue nil
     @fh = File.open(@file, "ab")
@@ -152,6 +212,7 @@ class TC_IO_Extra < Test::Unit::TestCase
     assert_nil(@fh.ttyname)
     assert_kind_of(String, STDOUT.ttyname)
   end
+=end
 
   def teardown
     @fh.close rescue nil
