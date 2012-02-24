@@ -74,6 +74,9 @@ class IO
     isatty ? ttyname_c(fileno) : nil
   end
 
+  #--
+  # Linus Torvalds on O_DIRECT: https://lkml.org/lkml/2007/1/10/233
+  #
   def directio=(advice)
     unless [DIRECTIO_ON, DIRECTIO_OFF, true, false].include?(advice)
       raise "Invalid value passed to directio="
