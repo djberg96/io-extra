@@ -72,6 +72,17 @@ static void rb_18_str_set_len(VALUE str, long len)
 #define rb_str_set_len(str,len) rb_18_str_set_len(str,len)
 #endif
 
+/*
+ * Matz Ruby 1.9.3 has rb_reserved_fd_p() because it uses an internal
+ * timer thread + pipe to communicate signal wakeups (1.9.0 - 1.9.2
+ * wokeup every 10ms to check for signals).   Accidentally closing this
+ * pipe breaks the VM completely, so we use this function to avoid it.
+ * This can be safely made a no-op for Ruby implementations that do
+ * not have this function (since it implies the VM does not reserve FDs)
+ */
+#ifndef RB_RESERVED_FD_P
+#define RB_RESERVED_FD_P(fd) (0)
+#endif
 
 #ifdef PROC_SELF_FD_DIR
 #include <dirent.h>
@@ -131,15 +142,18 @@ static int open_max(void){
  * The manual approach was copied from the closefrom() man page on Solaris 9.
  */
 static VALUE io_closefrom(VALUE klass, VALUE v_low_fd){
-#ifdef HAVE_CLOSEFROM
+#if defined(HAVE_CLOSEFROM) && !defined(HAVE_RB_RESERVED_FD_P)
+   /* we can't safely use closefrom() if the RubyVM reserves FDs */
    closefrom(NUM2INT(v_low_fd));
 #else
    int i, lowfd;
    int maxfd = open_max();
    lowfd = NUM2INT(v_low_fd);
 
-   for(i = lowfd; i < maxfd; i++)
-      close(i);
+   for(i = lowfd; i < maxfd; i++) {
+      if(!RB_RESERVED_FD_P(i))
+         close(i);
+   }
 #endif
    return klass;
 }
@@ -205,6 +219,8 @@ static int close_func(void* lowfd, int fd){
   VALUE v_args[1];
 
   if(fd >= *(int*)lowfd){
+    if (RB_RESERVED_FD_P(fd))
+      return 0;
     v_args[0] = UINT2NUM(fd);
     rb_yield(rb_class_new_instance(1, v_args, rb_cFile));
   }
