@@ -8,14 +8,13 @@ Gem::Specification.new do |spec|
   end
    
   spec.name       = 'io-extra'
-  spec.version    = '1.2.6'
+  spec.version    = '1.3.0'
   spec.author     = 'Daniel J. Berger'
   spec.license    = 'Artistic 2.0'
   spec.email      = 'djberg96@gmail.com'
   spec.homepage   = 'http://www.rubyforge.org/projects/shards'
   spec.summary    = 'Adds extra methods to the IO class.'
   spec.test_file  = 'test/test_io_extra.rb'
-  spec.extensions = ['ext/extconf.rb']
   spec.files      = Dir['**/*'] << '.gemtest'
 
   spec.extra_rdoc_files = [
@@ -28,7 +27,7 @@ Gem::Specification.new do |spec|
   spec.rubyforge_project = 'shards'
   spec.required_ruby_version = '>= 1.8.6'
 
-  spec.add_development_dependency('test-unit', '>= 2.1.1')
+  spec.add_development_dependency('test-unit', '>= 2.4.0')
    
   spec.description = <<-EOF
     Adds the IO.closefrom, IO.fdwalk, IO.pread, IO.pread_ptr, IO.pwrite, and
