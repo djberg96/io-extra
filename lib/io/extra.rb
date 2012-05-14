@@ -3,7 +3,6 @@ require 'fcntl'
 
 class IO
   extend FFI::Library
-  ffi_lib_flags :now, :global
   ffi_lib FFI::Library::LIBC
 
   attach_function :close_c, :close, [:int], :int
