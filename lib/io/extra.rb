@@ -42,6 +42,15 @@ class IO
     # Not supported
   end
 
+  # Need to get at some Ruby internals
+  ffi_lib FFI::CURRENT_PROCESS
+
+  begin
+    attach_function :reserved_fd, :rb_reserved_fd_p, [:int], :bool
+  rescue FFI::NotFoundError
+    # 1.9.2 or earlier
+  end
+
   # IOV_MAX is used by the write method.
   case RbConfig::CONFIG['host_os']
     when /sunos|solaris/i
@@ -177,7 +186,7 @@ class IO
     ptr  = FFI::MemoryPointer.new(:int)
     ptr.write_int(lowfd)
 
-    if method_defined?(:fdwalk_c)
+    if method_defined?(:fdwalk_c) && !method_defined?(:reserved_fd)
       fdwalk_c(func, ptr)
     else
       0.upto(open_max){ |fd|
@@ -191,10 +200,14 @@ class IO
   # are greater than or equal to +fd+.
   #
   def self.closefrom(fd)
-    if method_defined?(:closefrom_c)
+    if method_defined?(:closefrom_c) && !method_defined?(:reserved_fd)
       closefrom_c(fd)
     else
-      fd.upto(open_max){ |n| close_c(n) }
+      if method_defined?(:reserved_fd)
+        fd.upto(open_max){ |n| close_c(n) unless reserved_fd(n) }
+      else
+        fd.upto(open_max){ |n| close_c(n) }
+      end
     end
   end
 
