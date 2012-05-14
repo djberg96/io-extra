@@ -62,7 +62,7 @@ class IO
 
   # Used by the writev method.
   class Iovec < FFI::Struct
-    layout(:iov_base, :pointer, :iov_len, :int)
+    layout(:iov_base, :pointer, :iov_len, :size_t)
   end
 
   # IO.writev(fd, %w[hello world])
