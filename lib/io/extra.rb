@@ -194,7 +194,7 @@ class IO
     if method_defined?(:closefrom_c)
       closefrom_c(fd)
     else
-      fd.upto(open_max){ |fd| close_c(fd) }
+      fd.upto(open_max){ |n| close_c(n) }
     end
   end
 
