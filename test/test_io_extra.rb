@@ -4,10 +4,7 @@
 # Test suite for the io-extra library. This test should be run via the
 # 'rake test' task.
 ###########################################################################
-require 'rubygems'
-gem 'test-unit'
-
-require 'test/unit'
+require 'test-unit'
 require 'rbconfig'
 require 'io/nonblock'
 require 'io/extra'
