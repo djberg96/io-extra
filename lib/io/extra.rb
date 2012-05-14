@@ -3,6 +3,7 @@ require 'fcntl'
 
 class IO
   extend FFI::Library
+  ffi_lib_flags :now, :global
   ffi_lib FFI::Library::LIBC
 
   attach_function :close_c, :close, [:int], :int
@@ -180,7 +181,11 @@ class IO
   #
   def self.fdwalk(lowfd)
     func = FFI::Function.new(:int, [:pointer, :int]){ |cd, fd|
-      yield File.new(fd) if fd >= lowfd
+      if method_defined?(:reserved_fd)
+        yield File.new(fd) if fd >= lowfd && !reserved_fd(fd)
+      else
+        yield File.new(fd) if fd >= lowfd
+      end
     }
 
     ptr  = FFI::MemoryPointer.new(:int)
