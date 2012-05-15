@@ -10,7 +10,6 @@ class IO
   attach_function :pread_c, :pread, [:int, :pointer, :size_t, :off_t], :size_t
   attach_function :pwrite_c, :pwrite, [:int, :pointer, :size_t, :off_t], :size_t
   attach_function :writev_c, :writev, [:int, :pointer, :int], :size_t
-  attach_function :strerror, [:int], :string
 
   begin
     attach_function :ttyname_c, :ttyname, [:int], :string
@@ -109,7 +108,7 @@ class IO
     bytes = writev_c(fd, iov, array.size)
 
     if bytes == -1
-      raise "writev function failed: " + strerror(FFI.errno)
+      raise SystemCallError, FFI.errno, "writev"
     end
 
     bytes
@@ -138,7 +137,7 @@ class IO
     ptr = FFI::MemoryPointer.new(:void, length)
 
     if pread_c(fd, ptr, length, offset) == -1
-      raise "pread function failed: " + strerror(FFI.errno)
+      raise SystemCallError, FFI.errno, "pread"
     end
 
     ptr
@@ -162,7 +161,7 @@ class IO
     nbytes = pwrite_c(fd, buffer, buffer.size, offset)
 
     if nbytes == -1
-      raise "pwrite function failed: " + strerror(FFI.errno)
+      raise SystemCallError, FFI.errno, "pwrite"
     end
 
     nbytes
@@ -245,7 +244,7 @@ class IO
 
     if respond_to?(:directio)
       if directio(fileno, advice) < 0
-        raise "directio function call failed: " + strerror(FFI.errno)
+        raise SystemCallError, FFI.errno, "directio"
       end
     else
       flags = fcntl(Fcntl::F_GETFL)
