@@ -10,6 +10,11 @@ require 'io/nonblock'
 require 'io/extra'
 
 class TC_IO_Extra < Test::Unit::TestCase
+  def self.startup
+    @@linux  = RbConfig::CONFIG['host_os'] =~ /linux/i
+    @@darwin = RbConfig::CONFIG['host_os'] =~ /darwin/i
+  end
+
   def setup
     @file = 'delete_this.txt'
     @fh = File.open(@file, 'w+')
@@ -26,6 +31,7 @@ class TC_IO_Extra < Test::Unit::TestCase
   end
 
   test "opening a file with the DIRECT attribute works as expected" do
+    omit_unless(@@linux)
     assert_nothing_raised do
       fh = File.open(@fh.path, IO::RDWR|IO::DIRECT)
       fh.close
@@ -246,5 +252,10 @@ class TC_IO_Extra < Test::Unit::TestCase
     @fh.close rescue nil
     @fh = nil
     File.delete(@file) if File.exists?(@file)
+  end
+
+  def self.shutdown
+    @@linux  = nil
+    @@darwin = nil
   end
 end
