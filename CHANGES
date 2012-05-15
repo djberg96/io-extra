@@ -1,3 +1,10 @@
+== 1.2.7 - ???
+* Fixed a bug in fdwalk and closefrom when using Ruby 1.9.3 where
+  closing reserved file descriptors would segfault the interpreter.
+  Thanks go to Eric Wong for the patch.
+* Fixed a bug in the fdwalk method where it was not honoring the
+  lowfd argument, and added a test for it.
+
 == 1.2.6 - 22-May-2011
 * Fixed a potential memory leak in the pread_ptr method where malloc'ed
   memory was not freed if the pread function call failed. Thanks go to
