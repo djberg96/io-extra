@@ -2,7 +2,7 @@ require 'rubygems'
 require 'rbconfig'
 
 Gem::Specification.new do |spec|
-  if RbConfig::CONFIG['host_os'] =~ /mswin|dos|win32|cygwin|mingw|windows/i
+  if File::ALT_SEPARATOR
     STDERR.puts 'Not supported on this platform. Exiting.'
     exit(-1)
   end
@@ -28,7 +28,7 @@ Gem::Specification.new do |spec|
   spec.rubyforge_project = 'shards'
   spec.required_ruby_version = '>= 1.8.6'
 
-  spec.add_development_dependency('test-unit', '>= 2.4.0')
+  spec.add_development_dependency('test-unit', '>= 2.5.0')
    
   spec.description = <<-EOF
     Adds the IO.closefrom, IO.fdwalk, IO.pread, IO.pread_ptr, IO.pwrite, and
