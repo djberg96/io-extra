@@ -249,7 +249,7 @@ static VALUE io_fdwalk(int argc, VALUE* argv, VALUE klass){
 }
 #endif
 
-#if defined(HAVE_DIRECTIO) || defined(O_DIRECT)
+#if defined(HAVE_DIRECTIO) || defined(O_DIRECT) || defined(F_NOCACHE)
 /*
  * call-seq:
  *    IO#directio?
@@ -258,7 +258,7 @@ static VALUE io_fdwalk(int argc, VALUE* argv, VALUE klass){
  * current handle. The default is false.
  */
 static VALUE io_get_directio(VALUE self){
-#if defined(HAVE_DIRECTIO)
+#if defined(HAVE_DIRECTIO) || defined(F_NOCACHE)
    VALUE v_advice = Qnil;
 
    if(rb_ivar_defined(rb_cIO, rb_intern("@directio")))
@@ -309,6 +309,7 @@ static VALUE io_set_directio(VALUE self, VALUE v_advice){
       rb_iv_set(self, "directio", Qtrue);
 #else
    {
+#if defined(O_DIRECT)
       int flags = fcntl(fd, F_GETFL);
 
       if(flags < 0)
@@ -325,6 +326,18 @@ static VALUE io_set_directio(VALUE self, VALUE v_advice){
                rb_sys_fail("fcntl");
          }
       }
+#elif defined(F_NOCACHE)
+      if(advice == DIRECTIO_OFF){
+         if(fcntl(fd, F_NOCACHE, 0) < 0)
+            rb_sys_fail("fcntl");
+      } else { /* DIRECTIO_ON*/
+         if(fcntl(fd, F_NOCACHE, 1) < 0)
+            rb_sys_fail("fcntl");
+      }
+
+      if(advice == DIRECTIO_ON)
+         rb_iv_set(self, "directio", Qtrue);
+#endif
    }
 #endif
 
@@ -592,7 +605,7 @@ void Init_extra(){
    rb_define_singleton_method(rb_cIO, "fdwalk", io_fdwalk, -1);
 #endif
 
-#if defined(HAVE_DIRECTIO) || defined(O_DIRECT)
+#if defined(HAVE_DIRECTIO) || defined(O_DIRECT) || defined(F_NOCACHE)
    rb_define_method(rb_cIO, "directio?", io_get_directio, 0);
    rb_define_method(rb_cIO, "directio=", io_set_directio, 1);
 

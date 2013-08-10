@@ -37,4 +37,8 @@ if have_macro("O_DIRECT", %w(sys/types.h fcntl.h))
   $CPPFLAGS += " -DHAVE_O_DIRECT_MACRO"
 end
 
+if have_macro("F_NOCACHE", %w(fcntl.h))
+  $CPPFLAGS += " -DHAVE_F_NOCACHE_MACRO"
+end
+
 create_makefile('io/extra', 'io')
