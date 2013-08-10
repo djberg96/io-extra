@@ -31,6 +31,10 @@
 #endif
 #endif
 
+#ifdef HAVE_RB_THREAD_CALL_WITHOUT_GVL
+#include <ruby/thread.h>
+#endif
+
 #ifndef HAVE_RB_THREAD_BLOCKING_REGION
 /*
  * partial emulation of the 1.9 rb_thread_blocking_region under 1.8,
@@ -376,7 +380,11 @@ static VALUE s_io_pread(VALUE klass, VALUE fd, VALUE nbyte, VALUE offset){
    str = rb_str_new(NULL, args.nbyte);
    args.buf = RSTRING_PTR(str);
 
+#ifdef HAVE_RB_THREAD_CALL_WITHOUT_GVL
+   nread = (ssize_t)rb_thread_call_without_gvl((void*)nogvl_pread, &args, RUBY_UBF_IO, 0);
+#else
    nread = (ssize_t)rb_thread_blocking_region(nogvl_pread, &args, RUBY_UBF_IO, 0);
+#endif
 
    if (nread == -1)
       rb_sys_fail("pread");
@@ -446,7 +454,11 @@ static VALUE s_io_pwrite(VALUE klass, VALUE fd, VALUE buf, VALUE offset){
    args.nbyte = RSTRING_LEN(buf);
    args.offset = NUM2OFFT(offset);
 
+#ifdef HAVE_RB_THREAD_CALL_WITHOUT_GVL
+   result = (ssize_t)rb_thread_call_without_gvl((void*)nogvl_pwrite, &args, RUBY_UBF_IO, 0);
+#else
    result = (ssize_t)rb_thread_blocking_region(nogvl_pwrite, &args, RUBY_UBF_IO, 0);
+#endif
 
    if(result == -1)
       rb_sys_fail("pwrite");
@@ -513,8 +525,15 @@ static VALUE s_io_writev(VALUE klass, VALUE fd, VALUE ary) {
    ARY2IOVEC(args.iov, args.iovcnt, left, ary);
 
    for(;;) {
-      ssize_t w = (ssize_t)rb_thread_blocking_region(nogvl_writev, &args,
-                                                     RUBY_UBF_IO, 0);
+#ifdef HAVE_RB_THREAD_CALL_WITHOUT_GVL
+      ssize_t w = (ssize_t)rb_thread_call_without_gvl(
+        (void*)nogvl_writev, &args, RUBY_UBF_IO, 0
+      );
+#else
+      ssize_t w = (ssize_t)rb_thread_blocking_region(
+        nogvl_writev, &args, RUBY_UBF_IO, 0
+      );
+#endif
 
       if(w == -1) {
          if (rb_io_wait_writable(args.fd)) {
