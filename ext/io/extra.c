@@ -259,10 +259,7 @@ static VALUE io_fdwalk(int argc, VALUE* argv, VALUE klass){
  */
 static VALUE io_get_directio(VALUE self){
 #if defined(HAVE_DIRECTIO) || defined(F_NOCACHE)
-   VALUE v_advice = Qnil;
-
-   if(rb_ivar_defined(rb_cIO, rb_intern("@directio")))
-      v_advice = rb_iv_get(self, "directio");
+   VALUE v_advice = rb_iv_get(self, "@directio");
 
    if(NIL_P(v_advice))
       v_advice = Qfalse;
@@ -306,7 +303,9 @@ static VALUE io_set_directio(VALUE self, VALUE v_advice){
       rb_raise(rb_eStandardError, "The directio() call failed");
 
    if(advice == DIRECTIO_ON)
-      rb_iv_set(self, "directio", Qtrue);
+      rb_iv_set(self, "@directio", Qtrue);
+   else
+      rb_iv_set(self, "@directio", Qfalse);
 #else
    {
 #if defined(O_DIRECT)
@@ -330,13 +329,12 @@ static VALUE io_set_directio(VALUE self, VALUE v_advice){
       if(advice == DIRECTIO_OFF){
          if(fcntl(fd, F_NOCACHE, 0) < 0)
             rb_sys_fail("fcntl");
+         rb_iv_set(self, "@directio", Qfalse);
       } else { /* DIRECTIO_ON*/
          if(fcntl(fd, F_NOCACHE, 1) < 0)
             rb_sys_fail("fcntl");
+         rb_iv_set(self, "@directio", Qtrue);
       }
-
-      if(advice == DIRECTIO_ON)
-         rb_iv_set(self, "directio", Qtrue);
 #endif
    }
 #endif
