@@ -1,4 +1,6 @@
 == 1.2.7 - ???
+* Direct IO is now supported on Darwin, and some bugs in the directio
+  methods have been fixed. Thanks go to Genki Takiuchi for the patches.
 * Fixed a bug in fdwalk and closefrom when using Ruby 1.9.3 where
   closing reserved file descriptors would segfault the interpreter.
   Thanks go to Eric Wong for the patch.
