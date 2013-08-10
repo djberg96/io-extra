@@ -38,20 +38,17 @@ class TC_IO_Extra < Test::Unit::TestCase
   end
 
   def test_directio
-    omit_if(RbConfig::CONFIG['host_os'] =~ /darwin/i, 'unsupported')
     assert_respond_to(@fh, :directio?)
     assert_nothing_raised{ @fh.directio? }
   end
 
   def test_directio_set
-    omit_if(RbConfig::CONFIG['host_os'] =~ /darwin/i, 'unsupported')
     assert_respond_to(@fh, :directio=)
     assert_raises(StandardError){ @fh.directio = 99 }
     assert_nothing_raised{ @fh.directio = IO::DIRECTIO_ON }
   end
 
   def test_constants
-    omit_if(RbConfig::CONFIG['host_os'] =~ /darwin/i, 'unsupported')
     assert_not_nil(IO::DIRECTIO_ON)
     assert_not_nil(IO::DIRECTIO_OFF)
   end
