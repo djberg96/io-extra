@@ -34,7 +34,12 @@ namespace :gem do
   desc 'Create the io-extra gem'
   task :create => [:clean] do
     spec = eval(IO.read('io-extra.gemspec'))
-    Gem::Builder.new(spec).build
+    if Gem::VERSION.to_f >= 2.0
+      require 'rubygems/package'
+      Gem::Package.build(spec)
+    else
+      Gem::Builder.new(spec).build
+    end
   end
 
   desc "Install the io-extra library as a gem"
