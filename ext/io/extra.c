@@ -35,12 +35,13 @@
 #include <ruby/thread.h>
 #endif
 
-#ifndef HAVE_RB_THREAD_BLOCKING_REGION
+#if ! defined(HAVE_RB_THREAD_BLOCKING_REGION) && \
+    ! defined(HAVE_RB_THREAD_CALL_WITHOUT_GVL)
 /*
- * partial emulation of the 1.9 rb_thread_blocking_region under 1.8,
+ * Partial emulation of the 1.9 rb_thread_blocking_region under 1.8,
  * this is enough to ensure signals are processed safely when doing I/O
  * to a slow device, but doesn't actually ensure threads can be
- * scheduled fairly in 1.8
+ * scheduled fairly in 1.8.
  */
 #include <rubysig.h>
 #define RUBY_UBF_IO ((rb_unblock_function_t *)-1)
