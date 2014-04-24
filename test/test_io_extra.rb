@@ -128,11 +128,13 @@ class TC_IO_Extra < Test::Unit::TestCase
     assert_equal("O\0HE", @fh.pread(4, 2).read_bytes(4))
   end
 
-  # TODO: Fix this failure
-  #def test_pread_last
-  #  size = @fh.stat.size
-  #  assert_equal("ck\n", @fh.pread(5, size - 3).read_string)
-  #end
+  test "reading past the end of the file does not cause issues" do
+    @fh.close rescue nil
+    @fh = File.open(@file)
+    size = @fh.stat.size
+    assert_nothing_raised{ @fh.pread(100, size-3) }
+    assert_equal("ck\n", @fh.pread(5, size - 3).read_string)
+  end
 
   test "pread singleton method basic functionality" do
     assert_respond_to(IO, :pread)
