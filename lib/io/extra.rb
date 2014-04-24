@@ -41,6 +41,15 @@ class IO
     # Not supported
   end
 
+  ffi_lib :aio
+
+  begin
+    AIO_INPROGRESS = -2
+    attach_function :aioread, [:int, :pointer, :int, :off_t, :int, :pointer], :int
+  rescue FFI::NotFoundError
+    # Not supported
+  end
+
   # Need to get at some Ruby internals
   ffi_lib FFI::CURRENT_PROCESS
 
@@ -71,6 +80,10 @@ class IO
   # Used by the writev method.
   class Iovec < FFI::Struct
     layout(:iov_base, :pointer, :iov_len, :size_t)
+  end
+
+  class AIOReturn < FFI::Struct
+    layout(:aio_return, :size_t, :aio_errno, :int)
   end
 
   # IO.writev(fd, %w[hello world])
@@ -147,6 +160,43 @@ class IO
   #
   def pread(length, offset)
     IO.pread(fileno, length, offset)
+  end
+
+  # An asynchronous version of IO.read that requires length and offset
+  # arguments and returns or yields a buffer.
+  #
+  # If a block is given, the call will block until the read is complete
+  # and then yield a buffer. Otherwise, it will return the buffer immediately,
+  # though you should not use it until the operation is complete.
+  #
+  # Example:
+  #
+  #   fh = File.open('some_file.txt')
+  #   buf = IO.aread(fh.fileno)
+  #   # ... wait
+  #   p buf.read_bytes(fh.size)
+  #
+  def self.aread(fd, length, offset = 0, whence = SEEK_SET, &block)
+    ret = AIOReturn.new
+    buf = FFI::Buffer.new(:char, length)
+
+    ret[:aio_return] = AIO_INPROGRESS
+
+    if aioread(fd, buf, buf.size, offset, whence, ret) != 0
+      raise SystemCallError.new('aioread', FFI.errno)
+    end
+
+    if block_given?
+      sleep 0.001 while ret[:aio_return] == AIO_INPROGRESS
+      yield buf
+    else
+      buf
+    end
+  end
+
+  # Instance method equivalent of IO.aread with an implicit fileno.
+  def aread(length = nil, offset = 0, whence = SEEK_SET, &block)
+    IO.aread(fileno, length, offset, whence, &block)
   end
 
   # This method writes the +buffer+, starting at +offset+, to the given +fd+,
