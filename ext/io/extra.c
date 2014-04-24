@@ -31,12 +31,17 @@
 #endif
 #endif
 
-#ifndef HAVE_RB_THREAD_BLOCKING_REGION
+#ifdef HAVE_RB_THREAD_CALL_WITHOUT_GVL
+#include <ruby/thread.h>
+#endif
+
+#if ! defined(HAVE_RB_THREAD_BLOCKING_REGION) && \
+    ! defined(HAVE_RB_THREAD_CALL_WITHOUT_GVL)
 /*
- * partial emulation of the 1.9 rb_thread_blocking_region under 1.8,
+ * Partial emulation of the 1.9 rb_thread_blocking_region under 1.8,
  * this is enough to ensure signals are processed safely when doing I/O
  * to a slow device, but doesn't actually ensure threads can be
- * scheduled fairly in 1.8
+ * scheduled fairly in 1.8.
  */
 #include <rubysig.h>
 #define RUBY_UBF_IO ((rb_unblock_function_t *)-1)
@@ -72,6 +77,17 @@ static void rb_18_str_set_len(VALUE str, long len)
 #define rb_str_set_len(str,len) rb_18_str_set_len(str,len)
 #endif
 
+/*
+ * Matz Ruby 1.9.3 has rb_reserved_fd_p() because it uses an internal
+ * timer thread + pipe to communicate signal wakeups (1.9.0 - 1.9.2
+ * wokeup every 10ms to check for signals).   Accidentally closing this
+ * pipe breaks the VM completely, so we use this function to avoid it.
+ * This can be safely made a no-op for Ruby implementations that do
+ * not have this function (since it implies the VM does not reserve FDs)
+ */
+#ifndef RB_RESERVED_FD_P
+#define RB_RESERVED_FD_P(fd) (0)
+#endif
 
 #ifdef PROC_SELF_FD_DIR
 #include <dirent.h>
@@ -131,15 +147,18 @@ static int open_max(void){
  * The manual approach was copied from the closefrom() man page on Solaris 9.
  */
 static VALUE io_closefrom(VALUE klass, VALUE v_low_fd){
-#ifdef HAVE_CLOSEFROM
+#if defined(HAVE_CLOSEFROM) && !defined(HAVE_RB_RESERVED_FD_P)
+   /* we can't safely use closefrom() if the RubyVM reserves FDs */
    closefrom(NUM2INT(v_low_fd));
 #else
    int i, lowfd;
    int maxfd = open_max();
    lowfd = NUM2INT(v_low_fd);
 
-   for(i = lowfd; i < maxfd; i++)
-      close(i);
+   for(i = lowfd; i < maxfd; i++) {
+      if(!RB_RESERVED_FD_P(i))
+         close(i);
+   }
 #endif
    return klass;
 }
@@ -202,11 +221,16 @@ static int fdwalk(int (*func)(void *data, int fd), void *data){
  * It's up to the user to close it.
  */
 static int close_func(void* lowfd, int fd){
-   VALUE v_args[1];
+  VALUE v_args[1];
 
-   v_args[0] = UINT2NUM(fd);
-   rb_yield(rb_class_new_instance(1, v_args, rb_cFile));
-   return 0;
+  if(fd >= *(int*)lowfd){
+    if (RB_RESERVED_FD_P(fd))
+      return 0;
+    v_args[0] = UINT2NUM(fd);
+    rb_yield(rb_class_new_instance(1, v_args, rb_cFile));
+  }
+
+  return 0;
 }
 
 /*
@@ -230,7 +254,7 @@ static VALUE io_fdwalk(int argc, VALUE* argv, VALUE klass){
 }
 #endif
 
-#if defined(HAVE_DIRECTIO) || defined(O_DIRECT)
+#if defined(HAVE_DIRECTIO) || defined(O_DIRECT) || defined(F_NOCACHE)
 /*
  * call-seq:
  *    IO#directio?
@@ -239,11 +263,8 @@ static VALUE io_fdwalk(int argc, VALUE* argv, VALUE klass){
  * current handle. The default is false.
  */
 static VALUE io_get_directio(VALUE self){
-#if defined(HAVE_DIRECTIO)
-   VALUE v_advice = Qnil;
-
-   if(rb_ivar_defined(rb_cIO, rb_intern("@directio")))
-      v_advice = rb_iv_get(self, "directio");
+#if defined(HAVE_DIRECTIO) || defined(F_NOCACHE)
+   VALUE v_advice = rb_iv_get(self, "@directio");
 
    if(NIL_P(v_advice))
       v_advice = Qfalse;
@@ -287,9 +308,12 @@ static VALUE io_set_directio(VALUE self, VALUE v_advice){
       rb_raise(rb_eStandardError, "The directio() call failed");
 
    if(advice == DIRECTIO_ON)
-      rb_iv_set(self, "directio", Qtrue);
+      rb_iv_set(self, "@directio", Qtrue);
+   else
+      rb_iv_set(self, "@directio", Qfalse);
 #else
    {
+#if defined(O_DIRECT)
       int flags = fcntl(fd, F_GETFL);
 
       if(flags < 0)
@@ -306,6 +330,17 @@ static VALUE io_set_directio(VALUE self, VALUE v_advice){
                rb_sys_fail("fcntl");
          }
       }
+#elif defined(F_NOCACHE)
+      if(advice == DIRECTIO_OFF){
+         if(fcntl(fd, F_NOCACHE, 0) < 0)
+            rb_sys_fail("fcntl");
+         rb_iv_set(self, "@directio", Qfalse);
+      } else { /* DIRECTIO_ON*/
+         if(fcntl(fd, F_NOCACHE, 1) < 0)
+            rb_sys_fail("fcntl");
+         rb_iv_set(self, "@directio", Qtrue);
+      }
+#endif
    }
 #endif
 
@@ -346,7 +381,11 @@ static VALUE s_io_pread(VALUE klass, VALUE fd, VALUE nbyte, VALUE offset){
    str = rb_str_new(NULL, args.nbyte);
    args.buf = RSTRING_PTR(str);
 
+#ifdef HAVE_RB_THREAD_CALL_WITHOUT_GVL
+   nread = (ssize_t)rb_thread_call_without_gvl((void*)nogvl_pread, &args, RUBY_UBF_IO, 0);
+#else
    nread = (ssize_t)rb_thread_blocking_region(nogvl_pread, &args, RUBY_UBF_IO, 0);
+#endif
 
    if (nread == -1)
       rb_sys_fail("pread");
@@ -416,7 +455,11 @@ static VALUE s_io_pwrite(VALUE klass, VALUE fd, VALUE buf, VALUE offset){
    args.nbyte = RSTRING_LEN(buf);
    args.offset = NUM2OFFT(offset);
 
+#ifdef HAVE_RB_THREAD_CALL_WITHOUT_GVL
+   result = (ssize_t)rb_thread_call_without_gvl((void*)nogvl_pwrite, &args, RUBY_UBF_IO, 0);
+#else
    result = (ssize_t)rb_thread_blocking_region(nogvl_pwrite, &args, RUBY_UBF_IO, 0);
+#endif
 
    if(result == -1)
       rb_sys_fail("pwrite");
@@ -483,8 +526,15 @@ static VALUE s_io_writev(VALUE klass, VALUE fd, VALUE ary) {
    ARY2IOVEC(args.iov, args.iovcnt, left, ary);
 
    for(;;) {
-      ssize_t w = (ssize_t)rb_thread_blocking_region(nogvl_writev, &args,
-                                                     RUBY_UBF_IO, 0);
+#ifdef HAVE_RB_THREAD_CALL_WITHOUT_GVL
+      ssize_t w = (ssize_t)rb_thread_call_without_gvl(
+        (void*)nogvl_writev, &args, RUBY_UBF_IO, 0
+      );
+#else
+      ssize_t w = (ssize_t)rb_thread_blocking_region(
+        nogvl_writev, &args, RUBY_UBF_IO, 0
+      );
+#endif
 
       if(w == -1) {
          if (rb_io_wait_writable(args.fd)) {
@@ -573,7 +623,7 @@ void Init_extra(){
    rb_define_singleton_method(rb_cIO, "fdwalk", io_fdwalk, -1);
 #endif
 
-#if defined(HAVE_DIRECTIO) || defined(O_DIRECT)
+#if defined(HAVE_DIRECTIO) || defined(O_DIRECT) || defined(F_NOCACHE)
    rb_define_method(rb_cIO, "directio?", io_get_directio, 0);
    rb_define_method(rb_cIO, "directio=", io_set_directio, 1);
 
@@ -608,6 +658,6 @@ void Init_extra(){
   rb_define_method(rb_cIO, "ttyname", io_get_ttyname, 0);
 #endif
 
-   /* 1.2.6: The version of this library. This a string. */
-   rb_define_const(rb_cIO, "EXTRA_VERSION", rb_str_new2("1.2.6"));
+   /* 1.2.7: The version of this library. This a string. */
+   rb_define_const(rb_cIO, "EXTRA_VERSION", rb_str_new2("1.2.7"));
 }

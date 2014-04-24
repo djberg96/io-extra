@@ -16,6 +16,8 @@ have_func('writev')
 have_func('rb_str_set_len', 'ruby.h')
 have_func('rb_thread_blocking_region')
 have_func('ttyname')
+have_func('rb_reserved_fd_p')
+have_func('rb_thread_call_without_gvl', 'ruby/thread.h')
 
 case RbConfig::CONFIG['host_os']
 when /darwin/i
@@ -34,6 +36,10 @@ end
 
 if have_macro("O_DIRECT", %w(sys/types.h fcntl.h))
   $CPPFLAGS += " -DHAVE_O_DIRECT_MACRO"
+end
+
+if have_macro("F_NOCACHE", %w(fcntl.h))
+  $CPPFLAGS += " -DHAVE_F_NOCACHE_MACRO"
 end
 
 create_makefile('io/extra', 'io')
