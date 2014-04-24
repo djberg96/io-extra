@@ -108,7 +108,7 @@ class IO
     bytes = writev_c(fd, iov, array.size)
 
     if bytes == -1
-      raise SystemCallError, FFI.errno, "writev"
+      raise SystemCallError.new('writev', FFI.errno)
     end
 
     bytes
@@ -137,7 +137,7 @@ class IO
     ptr = FFI::MemoryPointer.new(:void, length)
 
     if pread_c(fd, ptr, length, offset) == -1
-      raise SystemCallError, FFI.errno, "pread"
+      raise SystemCallError.new('pread', FFI.errno)
     end
 
     ptr
@@ -161,7 +161,7 @@ class IO
     nbytes = pwrite_c(fd, buffer, buffer.size, offset)
 
     if nbytes == -1
-      raise SystemCallError, FFI.errno, "pwrite"
+      raise SystemCallError.new('pwrite', FFI.errno)
     end
 
     nbytes
@@ -244,7 +244,7 @@ class IO
 
     if respond_to?(:directio)
       if directio(fileno, advice) < 0
-        raise SystemCallError, FFI.errno, "directio"
+        raise SystemCallError.new('directio', FFI.errno)
       end
     else
       flags = fcntl(Fcntl::F_GETFL)
