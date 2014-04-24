@@ -216,7 +216,7 @@ class TC_IO_Extra < Test::Unit::TestCase
   def teardown
     @fh.close rescue nil
     @fh = nil
-    File.delete(@file) if File.exists?(@file)
+    File.delete(@file) if File.exist?(@file)
   end
 
   def self.shutdown
