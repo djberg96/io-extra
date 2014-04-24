@@ -138,7 +138,7 @@ class TC_IO_Extra < Test::Unit::TestCase
 
   test "pread singleton method basic functionality" do
     assert_respond_to(IO, :pread)
-    #assert_kind_of(FFI::MemoryPointer, IO.pread(@fh.fileno, 5, 4))
+    assert_kind_of(FFI::MemoryPointer, IO.pread(@fh.fileno, 5, 4))
   end
 
   test "pread singleton method returns the expected string" do
@@ -163,12 +163,13 @@ class TC_IO_Extra < Test::Unit::TestCase
     assert_equal(3, @fh.pwrite("HAL", 0))
   end
 
-  # TODO: Fix this failure
-  #test "pwrite instance method writes data as expected" do
-  #  @fh.pwrite("HAL", 0)
-  #  @fh.rewind
-  #  assert_equal("HAL", @fh.read(3))
-  #end
+  test "pwrite instance method writes data as expected" do
+    @fh.close rescue nil
+    @fh = File.open(@file, 'w+')
+    @fh.pwrite("HAL", 0)
+    @fh.rewind
+    assert_equal("HAL", @fh.read(3))
+  end
 
   test "pwrite instance method requires two arguments only" do
     assert_raise(ArgumentError){ @fh.pwrite }
