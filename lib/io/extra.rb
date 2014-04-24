@@ -246,6 +246,12 @@ class IO
       if directio(fileno, advice) < 0
         raise SystemCallError.new('directio', FFI.errno)
       end
+    elsif RbConfig::CONFIG['host_os'] =~ /darwin/i
+      if advice == DIRECTIO_OFF || advice == false
+        fcntl(48, 0) # F_NOCACHE
+      else
+        fcntl(48, 1) # F_NOCACHE
+      end
     else
       flags = fcntl(Fcntl::F_GETFL)
 
