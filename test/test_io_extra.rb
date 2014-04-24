@@ -123,7 +123,10 @@ class TC_IO_Extra < Test::Unit::TestCase
   end
 
   test "pread instance method works in binary mode" do
+    @fh.close rescue nil
+    @fh = File.open(@file, 'w+')
     @fh.binmode
+    @fh.sync = true
     @fh.syswrite("FOO\0HELLO")
     assert_equal("O\0HE", @fh.pread(4, 2).read_bytes(4))
   end
