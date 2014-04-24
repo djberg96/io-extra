@@ -126,8 +126,8 @@ class IO
   # the given offset in the file without modifying the file pointer. Also,
   # the length and offset arguments are not optional.
   #
-  # Returns an FFI::MemoryPointer. If you want the string, call ptr#read_string.
-  # If you want the memory address, call ptr#address.
+  # Returns an FFI::MemoryPointer. If you want the string, call ptr#read_string
+  # or ptr#read_bytes. If you want the memory address, call ptr#address.
   #--
   # The reason for returning a pointer instead of a plain string is that it's
   # possible that the resulting buffer could be empty, in which case it would
