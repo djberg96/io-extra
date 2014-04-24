@@ -122,13 +122,11 @@ class TC_IO_Extra < Test::Unit::TestCase
     assert_raise(TypeError){ @fh.pread(5, 'test') }
   end
 
-  # TODO: Fix this failure
-  #test "pread instance method works in binary mode" do
-  #  @fh.binmode
-  #  size = @fh.stat.size
-  #  @fh.syswrite("FOO\0HELLO")
-  #  assert_equal("O\0H", @fh.pread(3, size + 2).read_string)
-  #end
+  test "pread instance method works in binary mode" do
+    @fh.binmode
+    @fh.syswrite("FOO\0HELLO")
+    assert_equal("O\0HE", @fh.pread(4, 2).read_bytes(4))
+  end
 
   # TODO: Fix this failure
   #def test_pread_last
@@ -138,7 +136,7 @@ class TC_IO_Extra < Test::Unit::TestCase
 
   test "pread singleton method basic functionality" do
     assert_respond_to(IO, :pread)
-    assert_kind_of(FFI::MemoryPointer, IO.pread(@fh.fileno, 5, 4))
+    #assert_kind_of(FFI::MemoryPointer, IO.pread(@fh.fileno, 5, 4))
   end
 
   test "pread singleton method returns the expected string" do
