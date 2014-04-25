@@ -67,11 +67,10 @@
   The IO.writev tests fail on Solaris. Short test scripts seem to work,
   however. We're not sure what the issue is yet. Help wanted.
 
+  This library is not compatible with JRuby.
+
   Please file any bug reports on the project page at
   https://github.com/djberg96/io-extra
-
-= Future Plans
-  * Switch from C extension to FFI.
 
 = Acknowledgements
   Eric Wong for some great work on Linux compatibility and other fixes, as
@@ -81,7 +80,7 @@
   Artistic 2.0
 
 = Copyright
-  (C) 2003-2013 Daniel J. Berger
+  (C) 2003-2014 Daniel J. Berger
   All Rights Reserved
     
 = Warranty
