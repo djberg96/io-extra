@@ -7,9 +7,9 @@ class IO
 
   attach_function :close_c, :close, [:int], :int
   attach_function :fcntl_c, :fcntl, [:int, :int, :varargs], :int
-  attach_function :pread_c, :pread, [:int, :pointer, :size_t, :off_t], :size_t
-  attach_function :pwrite_c, :pwrite, [:int, :pointer, :size_t, :off_t], :size_t
-  attach_function :writev_c, :writev, [:int, :pointer, :int], :size_t
+  attach_function :pread_c, :pread, [:int, :pointer, :size_t, :off_t], :size_t, :blocking => true
+  attach_function :pwrite_c, :pwrite, [:int, :pointer, :size_t, :off_t], :size_t, :blocking => true
+  attach_function :writev_c, :writev, [:int, :pointer, :int], :size_t, :blocking => true
 
   begin
     attach_function :ttyname_c, :ttyname, [:int], :string
