@@ -177,6 +177,9 @@ class IO
   #
   # Iterates over each open file descriptor and yields a File object.
   #
+  # Although this method may work with JRuby, the results may not
+  # be useful in practice.
+  #
   def self.fdwalk(lowfd)
     func = FFI::Function.new(:int, [:pointer, :int]){ |cd, fd|
       if method_defined?(:reserved_fd)
@@ -194,7 +197,11 @@ class IO
     else
       0.upto(open_max){ |fd|
         next if fcntl_c(fd, Fcntl::F_GETFD) < 0
-        func.call(ptr, fd)
+        begin
+          func.call(ptr, fd)
+        rescue Errno::EBADF
+          break # Mostly for JRuby here, but bail at this point.
+        end
       }
     end
   end
