@@ -47,6 +47,7 @@ class IO
     AIO_INPROGRESS = -2
     attach_function :aioread, [:int, :pointer, :int, :off_t, :int, :pointer], :int
     attach_function :aiowait, [:pointer], :pointer
+    attach_function :aiowrite, [:int, :buffer_in, :int, :off_t, :int, :pointer], :int
   rescue FFI::NotFoundError
     # Not supported
   end
@@ -224,6 +225,23 @@ class IO
     IO.pwrite(fileno, buffer, offset)
   end
 
+  def self.awrite(fd, string, offset, whence = SEEK_SET)
+    ret = AIOResult.new
+    ret[:aio_return] = AIO_INPROGRESS
+
+    if aiowrite(fd, string, string.size, offset, whence, ret) != 0
+      raise SystemCallError.new('aioread', FFI.errno)
+    end
+
+    ret
+  end
+
+  # Instance method equivalent of IO.awrite, with an implicit fileno.
+  #
+  def awrite(string, offset, whence = SEEK_SET)
+    IO.awrite(fileno, string, offset, whence = SEEK_SET)
+  end
+
   # IO.fdwalk(low_fd){ |file| ... }
   #
   # Iterates over each open file descriptor and yields a File object.
@@ -358,6 +376,8 @@ end
 
 if $0 == __FILE__
   file = 'test.txt'
-  fh = File.open(file)
-  IO.aread(fh.fileno, fh.size){ |b| p b }
+  fh = File.open(file, 'w')
+  #IO.aread(fh.fileno, fh.size){ |b| p b }
+  fh.awrite("Test\n", fh.size)
+  fh.close
 end
