@@ -88,6 +88,10 @@ class IO
     layout(:aio_return, :size_t, :aio_errno, :int)
   end
 
+  class Timeval < FFI::Struct
+    layout(:tv_sec, :long, :tv_usec, :long)
+  end
+
   # IO.writev(fd, %w[hello world])
   #
   # This method writes the contents of an array of strings to the given +fd+.
@@ -242,6 +246,28 @@ class IO
     IO.awrite(fileno, string, offset, whence = SEEK_SET)
   end
 
+  def self.await(seconds = nil)
+    if seconds
+      time = Timeval.new
+      time[:tv_sec] = seconds
+    else
+      time = nil
+    end
+
+    aiowait(time)
+  end
+
+  def await(seconds = nil)
+    if seconds
+      time = Timeval.new
+      time[:tv_sec] = seconds
+    else
+      time = nil
+    end
+
+    aiowait(time)
+  end
+
   # IO.fdwalk(low_fd){ |file| ... }
   #
   # Iterates over each open file descriptor and yields a File object.
@@ -379,5 +405,6 @@ if $0 == __FILE__
   fh = File.open(file, 'w')
   #IO.aread(fh.fileno, fh.size){ |b| p b }
   fh.awrite("Test\n", fh.size)
+  fh.await
   fh.close
 end
