@@ -46,6 +46,7 @@ class IO
   begin
     AIO_INPROGRESS = -2
     attach_function :aioread, [:int, :pointer, :int, :off_t, :int, :pointer], :int
+    attach_function :aiowait, [:pointer], :pointer
   rescue FFI::NotFoundError
     # Not supported
   end
@@ -82,7 +83,7 @@ class IO
     layout(:iov_base, :pointer, :iov_len, :size_t)
   end
 
-  class AIOReturn < FFI::Struct
+  class AIOResult < FFI::Struct
     layout(:aio_return, :size_t, :aio_errno, :int)
   end
 
@@ -172,12 +173,12 @@ class IO
   # Example:
   #
   #   fh = File.open('some_file.txt')
-  #   buf = IO.aread(fh.fileno)
+  #   buf = IO.aread(fh.fileno, fh.size)
   #   # ... wait
   #   p buf.read_bytes(fh.size)
   #
   def self.aread(fd, length, offset = 0, whence = SEEK_SET, &block)
-    ret = AIOReturn.new
+    ret = AIOResult.new
     buf = FFI::Buffer.new(:char, length)
 
     ret[:aio_return] = AIO_INPROGRESS
@@ -187,7 +188,7 @@ class IO
     end
 
     if block_given?
-      sleep 0.001 while ret[:aio_return] == AIO_INPROGRESS
+      aiowait(nil)
       yield buf
     else
       buf
@@ -353,4 +354,10 @@ class IO
       1024 # Common limit
     end
   end
+end
+
+if $0 == __FILE__
+  file = 'test.txt'
+  fh = File.open(file)
+  IO.aread(fh.fileno, fh.size){ |b| p b }
 end
