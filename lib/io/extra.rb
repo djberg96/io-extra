@@ -85,7 +85,7 @@ class IO
   end
 
   class AIOResult < FFI::Struct
-    layout(:aio_return, :size_t, :aio_errno, :int)
+    layout(:aio_return, :ssize_t, :aio_errno, :int)
   end
 
   class Timeval < FFI::Struct
@@ -404,7 +404,8 @@ if $0 == __FILE__
   file = 'test.txt'
   fh = File.open(file, 'w')
   #IO.aread(fh.fileno, fh.size){ |b| p b }
-  fh.awrite("Test\n", fh.size)
+  struct = fh.awrite("Test\n", fh.size)
   fh.await
+  p struct[:aio_return]
   fh.close
 end
