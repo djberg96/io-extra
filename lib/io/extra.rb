@@ -41,13 +41,23 @@ class IO
     # Not supported
   end
 
-  ffi_lib :aio
+  if RUBY_PLATFORM =~ /sunos|solaris/i
+    ffi_lib :aio
+
+    begin
+      AIO_INPROGRESS = -2
+      attach_function :aioread, [:int, :pointer, :int, :off_t, :int, :pointer], :int
+      attach_function :aiowait, [:pointer], :pointer
+      attach_function :aiowrite, [:int, :buffer_in, :int, :off_t, :int, :pointer], :int
+    rescue FFI::NotFoundError
+      # Not supported
+    end
+  end
+
+  ffi_lib :rt
 
   begin
-    AIO_INPROGRESS = -2
-    attach_function :aioread, [:int, :pointer, :int, :off_t, :int, :pointer], :int
-    attach_function :aiowait, [:pointer], :pointer
-    attach_function :aiowrite, [:int, :buffer_in, :int, :off_t, :int, :pointer], :int
+    attach_function :aio_read, [:pointer], :int
   rescue FFI::NotFoundError
     # Not supported
   end
@@ -86,6 +96,45 @@ class IO
 
   class AIOResult < FFI::Struct
     layout(:aio_return, :ssize_t, :aio_errno, :int)
+  end
+
+  class SigevThread < FFI::Struct
+    layout(:function, :pointer, :attribute, :pointer)
+  end
+
+  class Sigval < FFI::Union
+    layout(
+      :pad, [:int, (64 / FFI::Type::INT.size) - 3],
+      :tid, :pid_t,
+      :sigeve_thread, SigevThread
+    )
+  end
+
+  class Sigevent < FFI::Struct
+    layout(
+      :sigev_value, :size_t,
+      :sigev_signo, :int,
+      :sigev_notify, :int,
+      :sigev_un, Sigval
+    )
+  end
+
+  class AIOCB < FFI::Struct
+    layout(
+      :aio_fildes, :int,
+      :aio_lio_opcode, :int,
+      :aio_reqprio, :int,
+      :aio_buf, :pointer,
+      :aio_nbytes, :size_t,
+      :aio_sigevent, Sigevent,
+      :next_prio, :pointer,
+      :abs_prio, :int,
+      :policy, :int,
+      :error_code, :int,
+      :return_value, :ssize_t,
+      :aio_offset, :int64_t,
+      :unused, [:char, 32]
+    )
   end
 
   class Timeval < FFI::Struct
@@ -183,17 +232,31 @@ class IO
   #   p buf.read_bytes(fh.size)
   #
   def self.aread(fd, length, offset = 0, whence = SEEK_SET, &block)
-    ret = AIOResult.new
-    buf = FFI::Buffer.new(:char, length)
+    if RUBY_PLATFORM =~ /solaris|sunos/i
+      buf = FFI::Buffer.new(:char, length)
+      ret = AIOResult.new
+      ret[:aio_return] = AIO_INPROGRESS
 
-    ret[:aio_return] = AIO_INPROGRESS
+      if aioread(fd, buf, buf.size, offset, whence, ret) != 0
+        raise SystemCallError.new('aioread', FFI.errno)
+      end
+    else
+      buf = FFI::MemoryPointer.new(:char, length)
+      struct = AIOCB.new
+      struct[:aio_fildes] = fd
+      struct[:aio_buf] = buf
+      struct[:aio_nbytes] = length
+      struct[:aio_offset] = offset
 
-    if aioread(fd, buf, buf.size, offset, whence, ret) != 0
-      raise SystemCallError.new('aioread', FFI.errno)
+      if aio_read(struct) != 0
+        raise SystemCallError.new('aio_read', FFI.errno)
+      end
     end
 
     if block_given?
-      aiowait(nil)
+      if RUBY_PLATFORM =~ /sunos|solaris/i
+        aiowait(nil)
+      end
       yield buf
     else
       buf
@@ -403,9 +466,11 @@ end
 if $0 == __FILE__
   file = 'test.txt'
   fh = File.open(file, 'w')
-  #IO.aread(fh.fileno, fh.size){ |b| p b }
-  struct = fh.awrite("Test\n", fh.size)
-  fh.await
-  p struct[:aio_return]
+  ptr = IO.aread(fh.fileno, fh.size)
+  sleep 0.1
+  p ptr.read_bytes(fh.size)
+  #struct = fh.awrite("Test\n", fh.size)
+  #fh.await
+  #p struct[:aio_return]
   fh.close
 end
