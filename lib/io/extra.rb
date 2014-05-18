@@ -1,28 +1,15 @@
+require_relative 'extra/constants'
 require_relative 'extra/structs'
 require_relative 'extra/functions'
 require 'fcntl'
 
 class IO
+  include Extra::Constants
   include Extra::Structs
   extend Extra::Functions
 
-  # IOV_MAX is used by the write method.
-  case RbConfig::CONFIG['host_os']
-    when /sunos|solaris/i
-      IOV_MAX = 16
-    else
-      IOV_MAX = 1024
-  end
-
   # The version of the io-extra library
   EXTRA_VERSION = '2.0.0'
-
-  # Various internal constants
-
-  DIRECTIO_OFF = 0        # Turn off directio
-  DIRECTIO_ON  = 1        # Turn on directio
-
-  DIRECT = 00040000 # Direct disk access hint
 
   # IO.writev(fd, %w[hello world])
   #
