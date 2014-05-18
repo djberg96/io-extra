@@ -56,7 +56,13 @@ module Extra
       ffi_lib :rt
 
       begin
+        attach_function :aio_cancel, [:int, :pointer], :int
         attach_function :aio_read, [:pointer], :int
+        attach_function :aio_fsync, [:int, :pointer], :int
+        attach_function :aio_read, [:pointer], :int
+        attach_function :aio_return, [:pointer], :ssize_t
+        attach_function :aio_suspend, [:pointer, :int, :pointer], :int
+        attach_function :aio_write, [:pointer], :int
       rescue FFI::NotFoundError
         # Not supported
       end
