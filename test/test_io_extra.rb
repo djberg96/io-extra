@@ -17,7 +17,7 @@ class TC_IO_Extra < Test::Unit::TestCase
   end
 
   def test_version
-    assert_equal('1.2.7', IO::EXTRA_VERSION)
+    assert_equal('1.2.8', IO::EXTRA_VERSION)
   end
 
   def test_direct_constant
@@ -157,6 +157,6 @@ class TC_IO_Extra < Test::Unit::TestCase
   def teardown
     @fh.close rescue nil
     @fh = nil
-    File.delete(@file) if File.exists?(@file)
+    File.delete(@file) if File.exist?(@file)
   end
 end

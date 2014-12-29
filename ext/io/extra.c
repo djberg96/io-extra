@@ -658,6 +658,6 @@ void Init_extra(){
   rb_define_method(rb_cIO, "ttyname", io_get_ttyname, 0);
 #endif
 
-   /* 1.2.7: The version of this library. This a string. */
-   rb_define_const(rb_cIO, "EXTRA_VERSION", rb_str_new2("1.2.7"));
+   /* 1.2.8: The version of this library. This a string. */
+   rb_define_const(rb_cIO, "EXTRA_VERSION", rb_str_new2("1.2.8"));
 }
