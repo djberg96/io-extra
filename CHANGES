@@ -1,3 +1,6 @@
+== 1.2.8 - 29-Dec-2014
+* Updated for compatibility with Ruby 2.2.x.
+
 == 1.2.7 - 10-Aug-2013
 * Direct IO is now supported on Darwin, and some bugs in the directio
   methods have been fixed. Thanks go to Genki Takiuchi for the patches.
