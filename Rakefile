@@ -45,7 +45,7 @@ namespace :gem do
   desc "Install the io-extra library as a gem"
   task :install => [:create] do
     file = Dir["io-extra*.gem"].last
-    sh "gem install #{file}"
+    sh "gem install -l #{file}"
   end
 end
 
