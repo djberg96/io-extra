@@ -6,7 +6,7 @@ Gem::Specification.new do |spec|
     STDERR.puts 'Not supported on this platform. Exiting.'
     exit(-1)
   end
-   
+
   spec.name       = 'io-extra'
   spec.version    = '1.2.8'
   spec.author     = 'Daniel J. Berger'
@@ -28,8 +28,6 @@ Gem::Specification.new do |spec|
   spec.rubyforge_project = 'shards'
   spec.required_ruby_version = '>= 1.8.6'
 
-  spec.add_development_dependency('test-unit', '>= 2.5.0')
-   
   spec.description = <<-EOF
     Adds the IO.closefrom, IO.fdwalk, IO.pread, IO.pread_ptr, IO.pwrite, and
     IO.writev singleton methods as well as the IO#directio, IO#directio? and

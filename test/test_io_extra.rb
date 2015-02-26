@@ -4,12 +4,12 @@
 # Test suite for the io-extra library. This test should be run via the
 # 'rake test' task.
 ###########################################################################
-require 'test-unit'
+require 'minitest/autorun'
 require 'rbconfig'
 require 'io/nonblock'
 require 'io/extra'
 
-class TC_IO_Extra < Test::Unit::TestCase
+class TestIOExtra < Minitest::Test
   def setup
     @file = 'delete_this.txt'
     @fh = File.open(@file, 'w+')
@@ -21,33 +21,31 @@ class TC_IO_Extra < Test::Unit::TestCase
   end
 
   def test_direct_constant
-    omit_unless(RbConfig::CONFIG['host_os'] =~ /linux/i, 'Linux-only')
+    skip_unless_linux
     assert_equal(040000, IO::DIRECT)
     assert_equal(040000, File::DIRECT)
   end
 
   def test_open_direct
-    omit_unless(RbConfig::CONFIG['host_os'] =~ /linux/i, 'Linux-only')
-    assert_nothing_raised do
-      fh = File.open(@fh.path, IO::RDWR|IO::DIRECT)
-      fh.close
-    end
+    skip_unless_linux
+    fh = File.open(@fh.path, IO::RDWR|IO::DIRECT)
+    fh.close
   end
 
   def test_directio
     assert_respond_to(@fh, :directio?)
-    assert_nothing_raised{ @fh.directio? }
+    @fh.directio?
   end
 
   def test_directio_set
     assert_respond_to(@fh, :directio=)
     assert_raises(StandardError){ @fh.directio = 99 }
-    assert_nothing_raised{ @fh.directio = IO::DIRECTIO_ON }
+    @fh.directio = IO::DIRECTIO_ON
   end
 
   def test_constants
-    assert_not_nil(IO::DIRECTIO_ON)
-    assert_not_nil(IO::DIRECTIO_OFF)
+    assert(IO::DIRECTIO_ON)
+    assert(IO::DIRECTIO_OFF)
   end
 
   def test_IOV_MAX_constant
@@ -55,19 +53,19 @@ class TC_IO_Extra < Test::Unit::TestCase
   end
 
   def test_fdwalk
-    omit_if(RbConfig::CONFIG['host_os'] =~ /darwin/i, 'unsupported')
+    skip_if_darwin
     assert_respond_to(IO, :fdwalk)
-    assert_nothing_raised{ IO.fdwalk(0){ } }
+    IO.fdwalk(0){ }
   end
 
   def test_fdwalk_honors_lowfd
-    omit_if(RbConfig::CONFIG['host_os'] =~ /darwin/i, 'unsupported')
-    IO.fdwalk(1){ |f| assert_true(f.fileno >= 1) }
+    skip_if_darwin
+    IO.fdwalk(1){ |f| assert(f.fileno >= 1) }
   end
 
   def test_closefrom
     assert_respond_to(IO, :closefrom)
-    assert_nothing_raised{ IO.closefrom(3) }
+    IO.closefrom(3)
   end
 
   def test_pread
@@ -82,7 +80,7 @@ class TC_IO_Extra < Test::Unit::TestCase
     @fh = File.open(@file, "ab")
     @fh.binmode
     size = @fh.stat.size
-    assert_nothing_raised { @fh.syswrite("FOO\0HELLO") }
+    @fh.syswrite("FOO\0HELLO")
     @fh.close rescue nil
     @fh = File.open(@file)
     assert_equal("O\0H", IO.pread(@fh.fileno, 3, size + 2))
@@ -104,7 +102,7 @@ class TC_IO_Extra < Test::Unit::TestCase
 
   def test_pwrite
     assert_respond_to(IO, :pwrite)
-    assert_nothing_raised{ IO.pwrite(@fh.fileno, "HAL", 0) }
+    IO.pwrite(@fh.fileno, "HAL", 0)
   end
 
   def test_writev
@@ -138,9 +136,9 @@ class TC_IO_Extra < Test::Unit::TestCase
              ok = (vec.join(empty) == tmp.join(empty))
              exit! ok
           end
-          assert_nothing_raised { rd.close }
+          rd.close
           assert_equal(bs * count, IO.writev(wr.fileno, vec))
-          assert_nothing_raised { wr.close }
+          wr.close
           _, status = Process.waitpid2(pid)
           assert status.success?
        end
@@ -158,5 +156,13 @@ class TC_IO_Extra < Test::Unit::TestCase
     @fh.close rescue nil
     @fh = nil
     File.delete(@file) if File.exist?(@file)
+  end
+
+  def skip_unless_linux
+    skip("Linux-only") unless RbConfig::CONFIG['host_os'] =~ /linux/i
+  end
+
+  def skip_if_darwin
+    skip("Unsupported") if RbConfig::CONFIG['host_os'] =~ /darwin/i
   end
 end
