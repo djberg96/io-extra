@@ -17,6 +17,7 @@ Gem::Specification.new do |spec|
   spec.test_file  = 'test/test_io_extra.rb'
   spec.extensions = ['ext/extconf.rb']
   spec.cert_chain = ['certs/djberg96_pub.pem']
+  spec.files      = ['lib/io-extra.rb']
 
   spec.extra_rdoc_files = [
     'CHANGES',
