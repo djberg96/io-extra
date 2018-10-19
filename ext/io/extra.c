@@ -1,10 +1,7 @@
 /* Extra methods for the IO class */
 #include "ruby.h"
-#ifdef HAVE_RUBY_IO_H
 #include "ruby/io.h"
-#else
-#include "rubyio.h"
-#endif
+#include "ruby/thread.h"
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -26,67 +23,9 @@
 #if defined(_SC_IOV_MAX)
 #define IOV_MAX (sysconf(_SC_IOV_MAX))
 #else
-/* assume infinity, or let the syscall return with error ... */
+// Assume infinity, or let the syscall return with error
 #define IOV_MAX INT_MAX
 #endif
-#endif
-
-#ifdef HAVE_RB_THREAD_CALL_WITHOUT_GVL
-#include <ruby/thread.h>
-#endif
-
-#if ! defined(HAVE_RB_THREAD_BLOCKING_REGION) && \
-    ! defined(HAVE_RB_THREAD_CALL_WITHOUT_GVL)
-/*
- * Partial emulation of the 1.9 rb_thread_blocking_region under 1.8,
- * this is enough to ensure signals are processed safely when doing I/O
- * to a slow device, but doesn't actually ensure threads can be
- * scheduled fairly in 1.8.
- */
-#include <rubysig.h>
-#define RUBY_UBF_IO ((rb_unblock_function_t *)-1)
-typedef void rb_unblock_function_t(void *);
-typedef VALUE rb_blocking_function_t(void *);
-static VALUE
-rb_thread_blocking_region(
-   rb_blocking_function_t *fn, void *data1,
-   rb_unblock_function_t *ubf, void *data2)
-{
-   VALUE rv;
-
-   TRAP_BEG;
-   rv = fn(data1);
-   TRAP_END;
-
-   return rv;
-}
-#endif
-
-#ifndef RSTRING_PTR
-#define RSTRING_PTR(v) (RSTRING(v)->ptr)
-#define RSTRING_LEN(v) (RSTRING(v)->len)
-#endif
-
-#ifndef HAVE_RB_STR_SET_LEN
-/* this is taken from Ruby 1.8.7, 1.8.6 may not have it */
-static void rb_18_str_set_len(VALUE str, long len)
-{
-   RSTRING(str)->len = len;
-   RSTRING(str)->ptr[len] = '\0';
-}
-#define rb_str_set_len(str,len) rb_18_str_set_len(str,len)
-#endif
-
-/*
- * Matz Ruby 1.9.3 has rb_reserved_fd_p() because it uses an internal
- * timer thread + pipe to communicate signal wakeups (1.9.0 - 1.9.2
- * wokeup every 10ms to check for signals).   Accidentally closing this
- * pipe breaks the VM completely, so we use this function to avoid it.
- * This can be safely made a no-op for Ruby implementations that do
- * not have this function (since it implies the VM does not reserve FDs)
- */
-#ifndef RB_RESERVED_FD_P
-#define RB_RESERVED_FD_P(fd) (0)
 #endif
 
 #ifdef PROC_SELF_FD_DIR
@@ -147,20 +86,16 @@ static int open_max(void){
  * The manual approach was copied from the closefrom() man page on Solaris 9.
  */
 static VALUE io_closefrom(VALUE klass, VALUE v_low_fd){
-#if defined(HAVE_CLOSEFROM) && !defined(HAVE_RB_RESERVED_FD_P)
-   /* we can't safely use closefrom() if the RubyVM reserves FDs */
-   closefrom(NUM2INT(v_low_fd));
-#else
-   int i, lowfd;
-   int maxfd = open_max();
-   lowfd = NUM2INT(v_low_fd);
+  int i, lowfd;
+  int maxfd = open_max();
+  lowfd = NUM2INT(v_low_fd);
 
-   for(i = lowfd; i < maxfd; i++) {
-      if(!RB_RESERVED_FD_P(i))
-         close(i);
-   }
-#endif
-   return klass;
+  for(i = lowfd; i < maxfd; i++) {
+    if(!RB_RESERVED_FD_P(i))
+      close(i);
+  }
+
+  return klass;
 }
 
 #ifndef HAVE_FDWALK
@@ -226,6 +161,7 @@ static int close_func(void* lowfd, int fd){
   if(fd >= *(int*)lowfd){
     if (RB_RESERVED_FD_P(fd))
       return 0;
+
     v_args[0] = UINT2NUM(fd);
     rb_yield(rb_class_new_instance(1, v_args, rb_cFile));
   }
@@ -242,15 +178,15 @@ static int close_func(void* lowfd, int fd){
  * Not supported on all platforms.
  */
 static VALUE io_fdwalk(int argc, VALUE* argv, VALUE klass){
-   VALUE v_low_fd, v_block;
-   int lowfd;
+  VALUE v_low_fd, v_block;
+  int lowfd;
 
-   rb_scan_args(argc, argv, "1&", &v_low_fd, &v_block);
-   lowfd = NUM2INT(v_low_fd);
+  rb_scan_args(argc, argv, "1&", &v_low_fd, &v_block);
+  lowfd = NUM2INT(v_low_fd);
 
-   fdwalk(close_func, &lowfd);
+  fdwalk(close_func, &lowfd);
 
-   return klass;
+  return klass;
 }
 #endif
 
@@ -264,20 +200,20 @@ static VALUE io_fdwalk(int argc, VALUE* argv, VALUE klass){
  */
 static VALUE io_get_directio(VALUE self){
 #if defined(HAVE_DIRECTIO) || defined(F_NOCACHE)
-   VALUE v_advice = rb_iv_get(self, "@directio");
+  VALUE v_advice = rb_iv_get(self, "@directio");
 
-   if(NIL_P(v_advice))
-      v_advice = Qfalse;
+  if(NIL_P(v_advice))
+    v_advice = Qfalse;
 
-   return v_advice;
+  return v_advice;
 #elif defined(O_DIRECT)
-   int fd = NUM2INT(rb_funcall(self, rb_intern("fileno"), 0, 0));
-   int flags = fcntl(fd, F_GETFL);
+  int fd = NUM2INT(rb_funcall(self, rb_intern("fileno"), 0, 0));
+  int flags = fcntl(fd, F_GETFL);
 
-   if(flags < 0)
-      rb_sys_fail("fcntl");
+  if(flags < 0)
+    rb_sys_fail("fcntl");
 
-   return (flags & O_DIRECT) ? Qtrue : Qfalse;
+  return (flags & O_DIRECT) ? Qtrue : Qfalse;
 #endif /* O_DIRECT */
 }
 
@@ -350,17 +286,16 @@ static VALUE io_set_directio(VALUE self, VALUE v_advice){
 
 #ifdef HAVE_PREAD
 struct pread_args {
-   int fd;
-   void *buf;
-   size_t nbyte;
-   off_t offset;
+  int fd;
+  void *buf;
+  size_t nbyte;
+  off_t offset;
 };
 
 static VALUE nogvl_pread(void *ptr)
 {
-   struct pread_args *args = ptr;
-
-   return (VALUE)pread(args->fd, args->buf, args->nbyte, args->offset);
+  struct pread_args *args = ptr;
+  return (VALUE)pread(args->fd, args->buf, args->nbyte, args->offset);
 }
 
 /*
@@ -371,28 +306,25 @@ static VALUE nogvl_pread(void *ptr)
  * the +fd+, +length+ and +offset+ arguments are all mandatory.
  */
 static VALUE s_io_pread(VALUE klass, VALUE fd, VALUE nbyte, VALUE offset){
-   struct pread_args args;
-   VALUE str;
-   ssize_t nread;
+  struct pread_args args;
+  VALUE str;
+  ssize_t nread;
 
-   args.fd = NUM2INT(fd);
-   args.nbyte = NUM2ULONG(nbyte);
-   args.offset = NUM2OFFT(offset);
-   str = rb_str_new(NULL, args.nbyte);
-   args.buf = RSTRING_PTR(str);
+  args.fd = NUM2INT(fd);
+  args.nbyte = NUM2ULONG(nbyte);
+  args.offset = NUM2OFFT(offset);
+  str = rb_str_new(NULL, args.nbyte);
+  args.buf = RSTRING_PTR(str);
 
-#ifdef HAVE_RB_THREAD_CALL_WITHOUT_GVL
-   nread = (ssize_t)rb_thread_call_without_gvl((void*)nogvl_pread, &args, RUBY_UBF_IO, 0);
-#else
-   nread = (ssize_t)rb_thread_blocking_region(nogvl_pread, &args, RUBY_UBF_IO, 0);
-#endif
+  nread = (ssize_t)rb_thread_call_without_gvl((void*)nogvl_pread, &args, RUBY_UBF_IO, 0);
 
-   if (nread == -1)
-      rb_sys_fail("pread");
-   if ((size_t)nread != args.nbyte)
-      rb_str_set_len(str, nread);
+  if(nread == -1)
+    rb_sys_fail("pread");
 
-   return str;
+  if((size_t)nread != args.nbyte)
+    rb_str_set_len(str, nread);
+
+  return str;
 }
 
 /*
@@ -422,17 +354,16 @@ static VALUE s_io_pread_ptr(VALUE klass, VALUE v_fd, VALUE v_nbyte, VALUE v_offs
 
 #ifdef HAVE_PWRITE
 struct pwrite_args {
-   int fd;
-   const void *buf;
-   size_t nbyte;
-   off_t offset;
+  int fd;
+  const void *buf;
+  size_t nbyte;
+  off_t offset;
 };
 
 static VALUE nogvl_pwrite(void *ptr)
 {
-   struct pwrite_args *args = ptr;
-
-   return (VALUE)pwrite(args->fd, args->buf, args->nbyte, args->offset);
+  struct pwrite_args *args = ptr;
+  return (VALUE)pwrite(args->fd, args->buf, args->nbyte, args->offset);
 }
 
 /*
@@ -447,24 +378,20 @@ static VALUE nogvl_pwrite(void *ptr)
  * Returns the number of bytes written.
  */
 static VALUE s_io_pwrite(VALUE klass, VALUE fd, VALUE buf, VALUE offset){
-   ssize_t result;
-   struct pwrite_args args;
+  ssize_t result;
+  struct pwrite_args args;
 
-   args.fd = NUM2INT(fd);
-   args.buf = RSTRING_PTR(buf);
-   args.nbyte = RSTRING_LEN(buf);
-   args.offset = NUM2OFFT(offset);
+  args.fd = NUM2INT(fd);
+  args.buf = RSTRING_PTR(buf);
+  args.nbyte = RSTRING_LEN(buf);
+  args.offset = NUM2OFFT(offset);
 
-#ifdef HAVE_RB_THREAD_CALL_WITHOUT_GVL
-   result = (ssize_t)rb_thread_call_without_gvl((void*)nogvl_pwrite, &args, RUBY_UBF_IO, 0);
-#else
-   result = (ssize_t)rb_thread_blocking_region(nogvl_pwrite, &args, RUBY_UBF_IO, 0);
-#endif
+  result = (ssize_t)rb_thread_call_without_gvl((void*)nogvl_pwrite, &args, RUBY_UBF_IO, 0);
 
-   if(result == -1)
-      rb_sys_fail("pwrite");
+  if(result == -1)
+    rb_sys_fail("pwrite");
 
-   return ULL2NUM(result);
+  return ULL2NUM(result);
 }
 #endif
 
@@ -494,16 +421,15 @@ static VALUE s_io_pwrite(VALUE klass, VALUE fd, VALUE buf, VALUE offset){
 
 #if defined(HAVE_WRITEV)
 struct writev_args {
-   int fd;
-   struct iovec *iov;
-   int iovcnt;
+  int fd;
+  struct iovec *iov;
+  int iovcnt;
 };
 
 static VALUE nogvl_writev(void *ptr)
 {
-   struct writev_args *args = ptr;
-
-   return (VALUE)writev(args->fd, args->iov, args->iovcnt);
+  struct writev_args *args = ptr;
+  return (VALUE)writev(args->fd, args->iov, args->iovcnt);
 }
 
 /*
@@ -518,75 +444,68 @@ static VALUE nogvl_writev(void *ptr)
  * Returns the number of bytes written.
  */
 static VALUE s_io_writev(VALUE klass, VALUE fd, VALUE ary) {
-   ssize_t result = 0;
-   ssize_t left;
-   struct writev_args args;
+  ssize_t result = 0;
+  ssize_t left;
+  struct writev_args args;
 
-   args.fd = NUM2INT(fd);
-   ARY2IOVEC(args.iov, args.iovcnt, left, ary);
+  args.fd = NUM2INT(fd);
+  ARY2IOVEC(args.iov, args.iovcnt, left, ary);
 
-   for(;;) {
-#ifdef HAVE_RB_THREAD_CALL_WITHOUT_GVL
-      ssize_t w = (ssize_t)rb_thread_call_without_gvl(
-        (void*)nogvl_writev, &args, RUBY_UBF_IO, 0
-      );
-#else
-      ssize_t w = (ssize_t)rb_thread_blocking_region(
-        nogvl_writev, &args, RUBY_UBF_IO, 0
-      );
-#endif
+  for(;;) {
+    ssize_t w = (ssize_t)rb_thread_call_without_gvl(
+      (void*)nogvl_writev, &args, RUBY_UBF_IO, 0
+    );
 
-      if(w == -1) {
-         if (rb_io_wait_writable(args.fd)) {
-            continue;
-         } else {
-            if (result > 0) {
-               /*
-                * unlikely to hit this case, return the already written bytes,
-                * we'll let the next write (or close) fail instead
-                */
-               break;
-            }
-            rb_sys_fail("writev");
-         }
+    if(w == -1){
+      if(rb_io_wait_writable(args.fd)){
+        continue;
+      }
+      else{
+        if(result > 0){
+          /* unlikely to hit this case, return the already written bytes,
+           * we'll let the next write (or close) fail instead */
+          break;
+        }
+        rb_sys_fail("writev");
+      }
+    }
+
+    result += w;
+
+    if(w == left){
+      break;
+    }
+    else{
+      // Partial write, this can get tricky
+      int i;
+      struct iovec *new_iov = args.iov;
+
+      left -= w;
+
+      // Skip over iovecs we've already written completely
+      for(i = 0; i < args.iovcnt; i++, new_iov++){
+        if (w == 0)
+          break;
+
+        // Partially written iov, modify and retry with current iovec in front
+        if(new_iov->iov_len > (size_t)w){
+          VALUE base = (VALUE)new_iov->iov_base;
+
+          new_iov->iov_len -= w;
+          new_iov->iov_base = (void *)(base + w);
+          break;
+        }
+
+        w -= new_iov->iov_len;
       }
 
-      result += w;
-      if(w == left) {
-         break;
-      } else { /* partial write, this can get tricky */
-         int i;
-         struct iovec *new_iov = args.iov;
+      // Retry without the already-written iovecs
+      args.iovcnt -= i;
+      args.iov = new_iov;
+    }
+  }
 
-         left -= w;
-
-         /* skip over iovecs we've already written completely */
-         for (i = 0; i < args.iovcnt; i++, new_iov++) {
-            if (w == 0)
-               break;
-
-            /*
-             * partially written iov,
-             * modify and retry with current iovec in front
-             */
-            if (new_iov->iov_len > (size_t)w) {
-               VALUE base = (VALUE)new_iov->iov_base;
-
-               new_iov->iov_len -= w;
-               new_iov->iov_base = (void *)(base + w);
-               break;
-            }
-
-            w -= new_iov->iov_len;
-         }
-
-         /* retry without the already-written iovecs */
-         args.iovcnt -= i;
-         args.iov = new_iov;
-      }
-   }
-
-   return LONG2NUM(result);
+  return LONG2NUM(result);
 }
 #endif
 
@@ -617,47 +536,47 @@ static VALUE io_get_ttyname(VALUE self){
  * and IO#directio? instance methods (if supported on your platform).
  */
 void Init_extra(){
-   rb_define_singleton_method(rb_cIO, "closefrom", io_closefrom, 1);
+  rb_define_singleton_method(rb_cIO, "closefrom", io_closefrom, 1);
 
 #ifdef HAVE_FDWALK
-   rb_define_singleton_method(rb_cIO, "fdwalk", io_fdwalk, -1);
+  rb_define_singleton_method(rb_cIO, "fdwalk", io_fdwalk, -1);
 #endif
 
 #if defined(HAVE_DIRECTIO) || defined(O_DIRECT) || defined(F_NOCACHE)
-   rb_define_method(rb_cIO, "directio?", io_get_directio, 0);
-   rb_define_method(rb_cIO, "directio=", io_set_directio, 1);
+  rb_define_method(rb_cIO, "directio?", io_get_directio, 0);
+  rb_define_method(rb_cIO, "directio=", io_set_directio, 1);
 
-   /* 0: Applications get the default system behavior when accessing file data. */
-   rb_define_const(rb_cIO, "DIRECTIO_OFF", UINT2NUM(DIRECTIO_OFF));
+  /* 0: Applications get the default system behavior when accessing file data. */
+  rb_define_const(rb_cIO, "DIRECTIO_OFF", UINT2NUM(DIRECTIO_OFF));
 
-   /* 1: File data is not cached in the system's memory pages. */
-   rb_define_const(rb_cIO, "DIRECTIO_ON", UINT2NUM(DIRECTIO_ON));
+  /* 1: File data is not cached in the system's memory pages. */
+  rb_define_const(rb_cIO, "DIRECTIO_ON", UINT2NUM(DIRECTIO_ON));
 #endif
 
 #ifdef O_DIRECT
-   /* 040000: direct disk access (in Linux) */
-   rb_define_const(rb_cIO, "DIRECT", UINT2NUM(O_DIRECT));
+  /* 040000: direct disk access (in Linux) */
+  rb_define_const(rb_cIO, "DIRECT", UINT2NUM(O_DIRECT));
 #endif
 
-   rb_define_const(rb_cIO, "IOV_MAX", LONG2NUM(IOV_MAX));
+  rb_define_const(rb_cIO, "IOV_MAX", LONG2NUM(IOV_MAX));
 
 #ifdef HAVE_PREAD
-   rb_define_singleton_method(rb_cIO, "pread", s_io_pread, 3);
-   rb_define_singleton_method(rb_cIO, "pread_ptr", s_io_pread_ptr, 3);
+  rb_define_singleton_method(rb_cIO, "pread", s_io_pread, 3);
+  rb_define_singleton_method(rb_cIO, "pread_ptr", s_io_pread_ptr, 3);
 #endif
 
 #ifdef HAVE_PWRITE
-   rb_define_singleton_method(rb_cIO, "pwrite", s_io_pwrite, 3);
+  rb_define_singleton_method(rb_cIO, "pwrite", s_io_pwrite, 3);
 #endif
 
 #ifdef HAVE_WRITEV
-   rb_define_singleton_method(rb_cIO, "writev", s_io_writev, 2);
+  rb_define_singleton_method(rb_cIO, "writev", s_io_writev, 2);
 #endif
 
 #ifdef HAVE_TTYNAME
   rb_define_method(rb_cIO, "ttyname", io_get_ttyname, 0);
 #endif
 
-   /* 1.2.8: The version of this library. This a string. */
-   rb_define_const(rb_cIO, "EXTRA_VERSION", rb_str_new2("1.2.8"));
+  /* 1.3.0: The version of this library. */
+  rb_define_const(rb_cIO, "EXTRA_VERSION", rb_str_freeze(rb_str_new2("1.3.0")));
 }
