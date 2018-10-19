@@ -33,8 +33,9 @@ end
 namespace :gem do
   desc 'Create the io-extra gem'
   task :create => [:clean] do
-    spec = eval(IO.read('io-extra.gemspec'))
     require 'rubygems/package'
+    spec = eval(IO.read('io-extra.gemspec'))
+    spec.signing_key = File.join(Dir.home, '.ssh', 'gem-private_key.pem')
     Gem::Package.build(spec, true)
   end
 

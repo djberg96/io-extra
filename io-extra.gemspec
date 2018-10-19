@@ -16,6 +16,7 @@ Gem::Specification.new do |spec|
   spec.summary    = 'Adds extra methods to the IO class'
   spec.test_file  = 'test/test_io_extra.rb'
   spec.extensions = ['ext/extconf.rb']
+  spec.cert_chain = ['certs/djberg96_pub.pem']
 
   spec.extra_rdoc_files = [
     'CHANGES',
