@@ -11,7 +11,7 @@
   gem install io-extra
 
 = Synopsis
-  require 'io/extra'
+  require 'io/extra' # or 'io-extra'
 
   # Close all file descriptors from 3 up.
   IO.closefrom(3)

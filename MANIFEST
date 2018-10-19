@@ -8,4 +8,5 @@
 * examples/example_io_extra.rb
 * ext/extconf.rb
 * ext/io/extra.c
+* lib/io-extra.rb
 * test/test_io_extra.rb

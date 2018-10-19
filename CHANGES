@@ -3,6 +3,7 @@
   it does allow for lots of internal cleanup.
 * License changed to Apache-2.0.
 * The EXTRA_VERSION constant is now frozen.
+* Added the io-extra.rb file for convenience.
 * Updates to the gemspec, including the addition of metadata.
 * The Rakefile now assumes Rubygems 2.0 or later.
 * Added a cert.
