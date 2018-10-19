@@ -3,9 +3,9 @@
 * CHANGES
 * Rakefile
 * io-extra.gemspec
+* certs/djberg96_pub.pem
 * doc/io_extra.txt
 * examples/example_io_extra.rb
 * ext/extconf.rb
 * ext/io/extra.c
 * test/test_io_extra.rb
-*.gemtest
