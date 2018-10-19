@@ -17,7 +17,8 @@ class TC_IO_Extra < Test::Unit::TestCase
   end
 
   def test_version
-    assert_equal('1.2.8', IO::EXTRA_VERSION)
+    assert_equal('1.3.0', IO::EXTRA_VERSION)
+    assert_true(IO::EXTRA_VERSION.frozen?)
   end
 
   def test_direct_constant
