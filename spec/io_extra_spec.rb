@@ -132,47 +132,51 @@ describe IO do
     end
   end
 
-=begin
-  example "writev_retry" do
-    empty = ""
-    if empty.respond_to?(:force_encoding)
-      empty.force_encoding(Encoding::BINARY)
-    end
+  context "writev_retry" do
+    skip "no /dev/urandom found, skipping" unless File.exist?("/dev/urandom")
+    example "writev with retry works as expected" do
+      empty = ""
 
-    # bs * count should be > PIPE_BUF
-    [ true, false ].each do |nonblock|
-       [ [ 512, 512 ], [ 131073, 3 ], [ 4098, 64 ] ].each do |(bs,count)|
+      if empty.respond_to?(:force_encoding)
+        empty.force_encoding(Encoding::BINARY)
+      end
+
+      # bs * count should be > PIPE_BUF
+      [ true, false ].each do |nonblock|
+        [ [ 512, 512 ], [ 131073, 3 ], [ 4098, 64 ] ].each do |(bs,count)|
           rd, wr = IO.pipe
           wr.nonblock = nonblock
           buf = File.open("/dev/urandom", "rb") { |fp| fp.sysread(bs) }
           vec = (1..count).map { buf }
+
           pid = fork do
-             wr.close
-             tmp = []
-             sleep 0.1
-             begin
-                tmp << rd.readpartial(8192, buf)
-             rescue EOFError
-                break
-             end while true
-             ok = (vec.join(empty) == tmp.join(empty))
-             exit! ok
+            wr.close
+            tmp = []
+            sleep 0.1
+            begin
+              tmp << rd.readpartial(8192, buf)
+            rescue EOFError
+              break
+            end while true
+            ok = (vec.join(empty) == tmp.join(empty))
+            exit! ok
           end
-          assert_nothing_raised { rd.close }
-          expect( vec)).to eq(bs * count, IO.writev(wr.fileno)
-          assert_nothing_raised { wr.close }
+
+          expect { rd.close }.not_to raise_error
+          expect(IO.writev(wr.fileno, vec)).to eq(bs * count)
+          expect { wr.close }.not_to raise_error
           _, status = Process.waitpid2(pid)
-          assert status.success?
-       end
+          expect(status.success?).to eq(true)
+        end
+      end
     end
   end
 
   example "ttyname" do
     expect(@fh).to respond_to(:ttyname)
     expect(@fh.ttyname).to be_nil
-    expect( STDOUT.ttyname).to be_kind_of(String)
+    expect(STDOUT.ttyname).to be_kind_of(String)
   end
-=end
 
   after do
     @fh.close rescue nil
