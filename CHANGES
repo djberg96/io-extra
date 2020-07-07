@@ -1,3 +1,14 @@
+== 1.4.0 - ???
+* Replaced the C versions of IO.pread and IO.pwrite singleton methods with
+  pure Ruby wrappers since core Ruby has implemented instance method versions
+  since Ruby 2.5.
+* Removed the pread_ptr method, I don't think anyone was using it. Might get
+  added back if there are complaints.
+* Removed the DIRECT constant since that is now defined by core Ruby.
+* Moved the VERSION constant into the pure Ruby file.
+* Now requires Ruby 2.5 or later.
+
+
 == 1.3.0 - 19-Oct-2018
 * Now assumes Ruby 2.1 or later. This has no effect on the external API, but
   it does allow for lots of internal cleanup.
