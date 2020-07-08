@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   end
    
   spec.name       = 'io-extra'
-  spec.version    = '1.3.0'
+  spec.version    = '1.4.0'
   spec.author     = 'Daniel J. Berger'
   spec.license    = 'Apache-2.0'
   spec.email      = 'djberg96@gmail.com'
@@ -26,9 +26,9 @@ Gem::Specification.new do |spec|
     'ext/io/extra.c'
   ]
 
-  spec.required_ruby_version = '>= 2.1.0'
+  spec.required_ruby_version = '>= 2.5.0'
 
-  spec.add_development_dependency('test-unit', '>= 2.5.0')
+  spec.add_development_dependency('rspec', '~> 3.9')
 
   spec.metadata = {
     'homepage_uri'      => 'https://github.com/djberg96/io-extra',
