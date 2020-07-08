@@ -1,7 +1,8 @@
-== 1.4.0 - ???
+== 1.4.0 - 8-Jul-2020
 * Replaced the C versions of IO.pread and IO.pwrite singleton methods with
   pure Ruby wrappers since core Ruby has implemented instance method versions
-  since Ruby 2.5.
+  since Ruby 2.5. These now require filehandles (rather than fileno) as an
+  argument.
 * Removed the pread_ptr method, I don't think anyone was using it. Might get
   added back if there are complaints.
 * Removed the DIRECT constant since that is now defined by core Ruby.
