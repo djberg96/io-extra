@@ -1,6 +1,7 @@
+* CHANGES
+* LICENSE
 * MANIFEST
 * README
-* CHANGES
 * Rakefile
 * io-extra.gemspec
 * certs/djberg96_pub.pem

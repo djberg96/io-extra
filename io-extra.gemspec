@@ -40,8 +40,8 @@ Gem::Specification.new do |spec|
   }
    
   spec.description = <<-EOF
-    Adds the IO.closefrom, IO.fdwalk, IO.pread, IO.pread_ptr, IO.pwrite, and
-    IO.writev singleton methods as well as the IO#directio, IO#directio? and
-    IO#ttyname instance methods (for those platforms that support them).
+    Adds the IO.closefrom, IO.fdwalk, IO.pread, IO.pwrite, and IO.writev
+    singleton methods as well as the IO#directio, IO#directio? and IO#ttyname
+    instance methods (for those platforms that support them).
   EOF
 end
