@@ -7,7 +7,7 @@
 require 'test-unit'
 require 'rbconfig'
 require 'io/nonblock'
-require 'io/extra'
+require 'io-extra'
 
 class TC_IO_Extra < Test::Unit::TestCase
   def setup
@@ -17,14 +17,8 @@ class TC_IO_Extra < Test::Unit::TestCase
   end
 
   def test_version
-    assert_equal('1.3.0', IO::EXTRA_VERSION)
+    assert_equal('1.4.0', IO::EXTRA_VERSION)
     assert_true(IO::EXTRA_VERSION.frozen?)
-  end
-
-  def test_direct_constant
-    omit_unless(RbConfig::CONFIG['host_os'] =~ /linux/i, 'Linux-only')
-    assert_equal(040000, IO::DIRECT)
-    assert_equal(040000, File::DIRECT)
   end
 
   def test_open_direct
@@ -75,7 +69,7 @@ class TC_IO_Extra < Test::Unit::TestCase
     @fh.close rescue nil
     @fh = File.open(@file)
     assert_respond_to(IO, :pread)
-    assert_equal("quick", IO.pread(@fh.fileno, 5, 4))
+    assert_equal("quick", IO.pread(@fh, 5, 4))
   end
 
   def test_pread_binary
@@ -86,34 +80,26 @@ class TC_IO_Extra < Test::Unit::TestCase
     assert_nothing_raised { @fh.syswrite("FOO\0HELLO") }
     @fh.close rescue nil
     @fh = File.open(@file)
-    assert_equal("O\0H", IO.pread(@fh.fileno, 3, size + 2))
-  end
-
-  def test_pread_ptr
-    @fh.close rescue nil
-    @fh = File.open(@file)
-    assert_respond_to(IO, :pread_ptr)
-    assert_kind_of(Integer, IO.pread_ptr(@fh.fileno, 5, 4))
+    assert_equal("O\0H", IO.pread(@fh, 3, size + 2))
   end
 
   def test_pread_last
     @fh.close rescue nil
     @fh = File.open(@file)
     size = @fh.stat.size
-    assert_equal("ck\n", IO.pread(@fh.fileno, 5, size - 3))
+    assert_equal("ck\n", IO.pread(@fh, 5, size - 3))
   end
 
   def test_pwrite
     assert_respond_to(IO, :pwrite)
-    assert_nothing_raised{ IO.pwrite(@fh.fileno, "HAL", 0) }
+    assert_nothing_raised{ IO.pwrite(@fh, "HAL", 0) }
   end
 
   def test_writev
     assert_respond_to(IO, :writev)
-    assert_equal(10, IO.writev(@fh.fileno, %w(hello world)))
+    assert_equal(10, IO.writev(@fh, %w[hello world]))
   end
 
-=begin
   def test_writev_retry
     empty = ""
     if empty.respond_to?(:force_encoding)
@@ -147,7 +133,6 @@ class TC_IO_Extra < Test::Unit::TestCase
        end
     end
   end
-=end
 
   def test_ttyname
     assert_respond_to(@fh, :ttyname)

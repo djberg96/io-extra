@@ -284,117 +284,6 @@ static VALUE io_set_directio(VALUE self, VALUE v_advice){
 }
 #endif
 
-#ifdef HAVE_PREAD
-struct pread_args {
-  int fd;
-  void *buf;
-  size_t nbyte;
-  off_t offset;
-};
-
-static VALUE nogvl_pread(void *ptr)
-{
-  struct pread_args *args = ptr;
-  return (VALUE)pread(args->fd, args->buf, args->nbyte, args->offset);
-}
-
-/*
- * IO.pread(fd, length, offset)
- *
- * This is similar to the IO.read method, except that it reads from a given
- * position in the file without changing the file pointer. And unlike IO.read,
- * the +fd+, +length+ and +offset+ arguments are all mandatory.
- */
-static VALUE s_io_pread(VALUE klass, VALUE fd, VALUE nbyte, VALUE offset){
-  struct pread_args args;
-  VALUE str;
-  ssize_t nread;
-
-  args.fd = NUM2INT(fd);
-  args.nbyte = NUM2ULONG(nbyte);
-  args.offset = NUM2OFFT(offset);
-  str = rb_str_new(NULL, args.nbyte);
-  args.buf = RSTRING_PTR(str);
-
-  nread = (ssize_t)rb_thread_call_without_gvl((void*)nogvl_pread, &args, RUBY_UBF_IO, 0);
-
-  if(nread == -1)
-    rb_sys_fail("pread");
-
-  if((size_t)nread != args.nbyte)
-    rb_str_set_len(str, nread);
-
-  return str;
-}
-
-/*
- * IO.pread_ptr(fd, length, offset)
- *
- * This is identical to IO.pread, except that it returns the pointer address
- * of the string, instead of the actual buffer.
- *--
- * This was added because, in some cases, the IO.pread buffer might return
- * an empty string. In such situations we are unable to get the actual pointer
- * address with pure Ruby.
- */
-static VALUE s_io_pread_ptr(VALUE klass, VALUE v_fd, VALUE v_nbyte, VALUE v_offset){
-  int fd = NUM2INT(v_fd);
-  size_t nbyte = NUM2ULONG(v_nbyte);
-  off_t offset = NUM2OFFT(v_offset);
-  uintptr_t* vector = malloc(nbyte + 1);
-
-  if(pread(fd, vector, nbyte, offset) == -1){
-    free(vector);
-    rb_sys_fail("pread");
-  }
-
-  return ULL2NUM(vector[0]);
-}
-#endif
-
-#ifdef HAVE_PWRITE
-struct pwrite_args {
-  int fd;
-  const void *buf;
-  size_t nbyte;
-  off_t offset;
-};
-
-static VALUE nogvl_pwrite(void *ptr)
-{
-  struct pwrite_args *args = ptr;
-  return (VALUE)pwrite(args->fd, args->buf, args->nbyte, args->offset);
-}
-
-/*
- * IO.pwrite(fd, buf, offset)
- *
- * This method writes the +buf+, starting at +offset+, to the given +fd+,
- * which must be opened with write permissions.
- *
- * This is similar to a seek & write in standard Ruby but the difference,
- * beyond being a singleton method, is that the file pointer is never moved.
- *
- * Returns the number of bytes written.
- */
-static VALUE s_io_pwrite(VALUE klass, VALUE fd, VALUE buf, VALUE offset){
-  ssize_t result;
-  struct pwrite_args args;
-
-  args.fd = NUM2INT(fd);
-  args.buf = RSTRING_PTR(buf);
-  args.nbyte = RSTRING_LEN(buf);
-  args.offset = NUM2OFFT(offset);
-
-  result = (ssize_t)rb_thread_call_without_gvl((void*)nogvl_pwrite, &args, RUBY_UBF_IO, 0);
-
-  if(result == -1)
-    rb_sys_fail("pwrite");
-
-  return ULL2NUM(result);
-}
-#endif
-
 /* this can't be a function since we use alloca() */
 #define ARY2IOVEC(iov,iovcnt,expect,ary) \
    do { \
@@ -447,6 +336,10 @@ static VALUE s_io_writev(VALUE klass, VALUE fd, VALUE ary) {
   ssize_t result = 0;
   ssize_t left;
   struct writev_args args;
+
+  // Allow a fileno or filehandle
+  if(rb_respond_to(fd, rb_intern("fileno")))
+    fd = rb_funcall(fd, rb_intern("fileno"), 0, 0);
 
   args.fd = NUM2INT(fd);
   ARY2IOVEC(args.iov, args.iovcnt, left, ary);
@@ -553,21 +446,7 @@ void Init_extra(){
   rb_define_const(rb_cIO, "DIRECTIO_ON", UINT2NUM(DIRECTIO_ON));
 #endif
 
-#ifdef O_DIRECT
-  /* 040000: direct disk access (in Linux) */
-  rb_define_const(rb_cIO, "DIRECT", UINT2NUM(O_DIRECT));
-#endif
-
   rb_define_const(rb_cIO, "IOV_MAX", LONG2NUM(IOV_MAX));
-
-#ifdef HAVE_PREAD
-  rb_define_singleton_method(rb_cIO, "pread", s_io_pread, 3);
-  rb_define_singleton_method(rb_cIO, "pread_ptr", s_io_pread_ptr, 3);
-#endif
-
-#ifdef HAVE_PWRITE
-  rb_define_singleton_method(rb_cIO, "pwrite", s_io_pwrite, 3);
-#endif
 
 #ifdef HAVE_WRITEV
   rb_define_singleton_method(rb_cIO, "writev", s_io_writev, 2);
@@ -576,7 +455,4 @@ void Init_extra(){
 #ifdef HAVE_TTYNAME
   rb_define_method(rb_cIO, "ttyname", io_get_ttyname, 0);
 #endif
-
-  /* 1.3.0: The version of this library. */
-  rb_define_const(rb_cIO, "EXTRA_VERSION", rb_str_freeze(rb_str_new2("1.3.0")));
 }
