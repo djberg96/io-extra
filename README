@@ -11,7 +11,7 @@
   gem install io-extra
 
 = Synopsis
-  require 'io/extra' # or 'io-extra'
+  require 'io-extra' # Do not use 'io/extra'
 
   # Close all file descriptors from 3 up.
   IO.closefrom(3)
@@ -27,6 +27,10 @@
   IO.writev(fh.fileno, %w[a b c])
 
 = Developer's Notes
+  The "require 'io-extra'" is preferred over 'io/extra' because this is a mix
+  of pure Ruby and C extension. The former require's the latter, so that way
+  you get all the methods and constants that you expect.
+
   You might be wondering what the difference is between my implementation of
   IO.closefrom and a pure Ruby version that looks something like this:
 
@@ -73,10 +77,6 @@
   Please file any bug reports on the project page at
   https://github.com/djberg96/io-extra
 
-= Future Plans
-  * Switch from C extension to FFI (maybe).
-  * Add the IO.pselect method.
-
 = Acknowledgements
   Eric Wong for some great work on Linux compatibility and other fixes, as
   well as the code for the IO.writev method.
@@ -85,7 +85,7 @@
   Apache-2.0
 
 = Copyright
-  (C) 2003-2018 Daniel J. Berger
+  (C) 2003-2020 Daniel J. Berger
   All Rights Reserved
     
 = Warranty
