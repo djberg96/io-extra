@@ -10,8 +10,6 @@ have_header('sys/uio.h')
 have_func('closefrom')
 have_func('fdwalk')
 have_func('directio')
-have_func('pread')
-have_func('pwrite')
 have_func('writev')
 have_func('ttyname')
 
