@@ -1,4 +1,4 @@
-== 1.4.0 - 8-Jul-2020
+## 1.4.0 - 8-Jul-2020
 * Replaced the C versions of IO.pread and IO.pwrite singleton methods with
   pure Ruby wrappers since core Ruby has implemented instance method versions
   since Ruby 2.5. These now require filehandles (rather than fileno) as an
@@ -11,7 +11,7 @@
 * Added a LICENSE file as required by the Apache-2.0 license.
 * The 'io-extra' file is now the preferred way to require this library.
 
-== 1.3.0 - 19-Oct-2018
+## 1.3.0 - 19-Oct-2018
 * Now assumes Ruby 2.1 or later. This has no effect on the external API, but
   it does allow for lots of internal cleanup.
 * License changed to Apache-2.0.
@@ -22,10 +22,10 @@
 * Added a cert.
 * Removed the .gemtest file.
 
-== 1.2.8 - 29-Dec-2014
+## 1.2.8 - 29-Dec-2014
 * Updated for compatibility with Ruby 2.2.x.
 
-== 1.2.7 - 10-Aug-2013
+## 1.2.7 - 10-Aug-2013
 * Direct IO is now supported on Darwin, and some bugs in the directio
   methods have been fixed. Thanks go to Genki Takiuchi for the patches.
 * Fixed a bug in fdwalk and closefrom when using Ruby 1.9.3 where
@@ -36,42 +36,42 @@
 * The rb_thread_call_without_gvl function is now used internally in
   place of rb_thread_blocking_region for Ruby 2.x.
 
-== 1.2.6 - 22-May-2011
+## 1.2.6 - 22-May-2011
 * Fixed a potential memory leak in the pread_ptr method where malloc'ed
   memory was not freed if the pread function call failed. Thanks go to
   Eric Wong for the spot.
 * Added the IO#ttyname method.
 * Added the (empty) .gemtest file for test.rubygems.org.
 
-== 1.2.5 - 23-Mar-2011
+## 1.2.5 - 23-Mar-2011
 * Use rb_thread_blocking_region internally for IO.pread and IO.pwrite. Thanks
   go to Eric Wong for the patch.
 
-== 1.2.4 - 22-Mar-2011
+## 1.2.4 - 22-Mar-2011
 * Use NUM2OFFT where appropriate. Fixes potential 32 vs 64 bit issues. Thanks
   go to Eric Wong for the spot and patch.
 * Added an example program for IO.pread, and a corresponding Rake task.
 * Config substituted with RbConfig, since the former is apparently going to
   deprecated in 1.9. Thanks go to Eric Wong for the spot and patch.
 
-== 1.2.3 - 25-Oct-2010
+## 1.2.3 - 25-Oct-2010
 * Documentation updates to the README.
 * Updates to the Rakefile, including archive tasks, a default task, and
   tweaks to the clean task.
 
-== 1.2.2 - 1-May-2010
+## 1.2.2 - 1-May-2010
 * Added the IO.writev method which allows you to write arrays without
   requiring an Array#join call, i.e. "gather write". Thanks go to Eric
   Wong for supplying the code to support this.
 * Some Rakefile updates.
 
-== 1.2.1 - 16-Jan-2010
+## 1.2.1 - 16-Jan-2010
 * Some README updates
 * Updates to the gemspec.
 * Added the gem:build and gem:install rake task.
 * Source code moved to github.
 
-== 1.2.0 - 28-Jul-2009
+## 1.2.0 - 28-Jul-2009
 * Several Linux compatibility fixes, all provided by Eric Wong.
 * Now compatible with 1.9.x thanks to Eric Wong.
 * Bug fix for IO.pread - memory leak and null byte behavior spotted and
@@ -81,19 +81,19 @@
 * Several tests were updated to use features from test-unit 2.x.
 * Fixed the 'example' rake task.
 
-== 1.1.1 - 8-Sep-2008
+## 1.1.1 - 8-Sep-2008
 * Added the IO.pread_ptr method. This returns the buffer address
   rather than the buffer itself.
 * Added limited support for OS X.
 * Minor refactoring of the IO.pread method.
 
-== 1.1.0 - 28-Aug-2008
+## 1.1.0 - 28-Aug-2008
 * Added IO.pread and IO.pwrite methods for those platforms that
   support them.
 * Fixed a warning that could occur in the IO#directio method.
 * Some updates the README, CHANGES, and test files.
 
-== 1.0.2 - 16-Jul-2007
+## 1.0.2 - 16-Jul-2007
 * Added a Rakefile with tasks for testing and installation.
 * Some doc updates and internal reorganization, but no significant code
   changes.
@@ -101,13 +101,13 @@
   mistaken about the header file I should use).
 * Minor updates to the example program.
 
-== 1.0.1 - 7-Jul-2006
+## 1.0.1 - 7-Jul-2006
 * Added a gemspec.
 * Added or improved the inline rdoc comments in the source.
 
-== 1.0.0 - 16-Jun-2005
+## 1.0.0 - 16-Jun-2005
 * Moved project to RubyForge.
 * Added a CHANGES file.
 
-== 0.1.0 - 26-Jan-2005
+## 0.1.0 - 26-Jan-2005
 * Initial release
