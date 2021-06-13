@@ -7,7 +7,7 @@
 require 'rspec'
 require 'rbconfig'
 require 'io/nonblock'
-require 'io/extra'
+require 'io-extra'
 
 describe IO do
   let(:linux) { RbConfig::CONFIG['host_os'] =~ /linux/i }
@@ -87,7 +87,7 @@ describe IO do
       @fh.close rescue nil
       @fh = File.open(@file)
       expect(IO).to respond_to(:pread)
-      expect(IO.pread(@fh.fileno, 5, 4)).to eq("quick")
+      expect(IO.pread(@fh, 5, 4)).to eq("quick")
     end
 
     example "pread works in binary mode" do
@@ -98,37 +98,28 @@ describe IO do
       expect { @fh.syswrite("FOO\0HELLO") }.not_to raise_error
       @fh.close rescue nil
       @fh = File.open(@file)
-      expect(IO.pread(@fh.fileno, 3, size + 2))
+      expect(IO.pread(@fh, 3, size + 2))
     end
 
     example "pread with offset works as expected" do
       @fh.close rescue nil
       @fh = File.open(@file)
       size = @fh.stat.size
-      expect(IO.pread(@fh.fileno, 5, size - 3)).to eq("ck\n")
-    end
-  end
-
-  context "pread_ptr" do
-    example "pread_ptr basic functionality" do
-      @fh.close rescue nil
-      @fh = File.open(@file)
-      expect(IO).to respond_to(:pread_ptr)
-      expect(IO.pread_ptr(@fh.fileno, 5, 4)).to be_kind_of(Integer)
+      expect(IO.pread(@fh, 5, size - 3)).to eq("ck\n")
     end
   end
 
   context "pwrite" do
     example "pwrite basic functionality" do
       expect(IO).to respond_to(:pwrite)
-      expect{ IO.pwrite(@fh.fileno, "HAL", 0) }.not_to raise_error
+      expect{ IO.pwrite(@fh, "HAL", 0) }.not_to raise_error
     end
   end
 
   context "writev" do
     example "writev" do
       expect(IO).to respond_to(:writev)
-      expect(IO.writev(@fh.fileno, %w[hello world])).to eq(10)
+      expect(IO.writev(@fh, %w[hello world])).to eq(10)
     end
   end
 
