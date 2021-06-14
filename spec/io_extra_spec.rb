@@ -1,9 +1,8 @@
-###########################################################################
-# test_io_extra.rb
+################################################################################
+# io_extra_spec.rb
 #
-# Test suite for the io-extra library. This test should be run via the
-# 'rake test' task.
-###########################################################################
+# Tests for the io-extra library. These should be run via the 'rake spec' task.
+################################################################################
 require 'rspec'
 require 'rbconfig'
 require 'io/nonblock'
