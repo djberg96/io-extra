@@ -455,6 +455,4 @@ void Init_extra(){
 #ifdef HAVE_TTYNAME
   rb_define_method(rb_cIO, "ttyname", io_get_ttyname, 0);
 #endif
-  /* 1.4.0: The version of this library. */
-  rb_define_const(rb_cIO, "EXTRA_VERSION", rb_str_freeze(rb_str_new2("1.4.0")));
 }
