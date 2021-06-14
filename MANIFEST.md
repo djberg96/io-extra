@@ -10,4 +10,4 @@
 * ext/extconf.rb
 * ext/io/extra.c
 * lib/io-extra.rb
-* test/test_io_extra.rb
+* spec/io_extra_spec.rb

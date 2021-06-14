@@ -1,6 +1,6 @@
 require 'rake'
 require 'rake/clean'
-require 'rake/testtask'
+require 'rspec/core/rake_task'
 require 'rbconfig'
 include RbConfig
 
@@ -85,11 +85,9 @@ namespace :example do
   end
 end
 
-Rake::TestTask.new do |t|
-  task :test => :build
-  t.libs << 'ext'
-  t.verbose = true
-  t.warning = true
+desc "Run the test suite"
+RSpec::Core::RakeTask.new(:spec) do |t|
+  t.rspec_opts = '-Iext'
 end
 
-task :default => :test
+task :default => [:build, :spec]
