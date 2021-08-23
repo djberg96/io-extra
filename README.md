@@ -10,6 +10,9 @@ Support for OS X is limited. See below for details.
 ## Installation
 `gem install io-extra`
 
+## Adding the trusted cert
+`gem cert --add <(curl -Ls https://raw.githubusercontent.com/djberg96/io-extra/main/certs/djberg96_pub.pem)`
+
 ## Synopsis
 ```ruby
 require 'io-extra' # Do not use 'io/extra'
