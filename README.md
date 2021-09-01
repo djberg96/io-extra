@@ -1,3 +1,5 @@
+[![Ruby](https://github.com/djberg96/io-extra/actions/workflows/ruby.yml/badge.svg)](https://github.com/djberg96/io-extra/actions/workflows/ruby.yml)
+
 ## Description
 The io-extra library provides a few extra IO methods that you may find
 handy. They are `IO.closefrom`, `IO.fdwalk`, `IO.pread`, `IO.pread_ptr`,
