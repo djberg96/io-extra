@@ -5,24 +5,26 @@
 # fit. You can run this via the 'rake example' task.
 ##############################################################################
 require_relative "../lib/io-extra"
-p IO::EXTRA_VERSION
+puts "VERSION: #{IO::EXTRA_VERSION}"
 
-fh = File.open("foo.txt","w+")
+begin
+  fh = File.open("foo.txt","w+")
 
-=begin
-p fh.directio?
+  puts "DIRECTIO"
+  sleep 2
 
-fh.directio = IO::DIRECTIO_ON
-p fh.directio?
+  p fh.directio?
+  fh.directio = IO::DIRECTIO_ON
+  p fh.directio?
 
-fh.close
-=end
+  puts "FDWALK"
+  sleep 2
 
-IO.fdwalk(0){ |handle|
-   p handle
-   p handle.fileno
-   puts
-}
+  IO.fdwalk(0){ |handle|
+     p handle
+     p handle.fileno
+     puts
+  }
 
 =begin
 STDIN.close
@@ -38,5 +40,14 @@ IO.closefrom(0)
 puts "Done" # Shouldn't see this
 =end
 
-fh.close
-File.delete("foo.txt") if File.exists?("foo.txt")
+  puts "IO.writev"
+  sleep 2
+
+  a = (1..1000).map(&:to_s)
+  IO.writev(fh, a)
+  fh.rewind
+  p fh.read
+ensure
+  fh.close
+  File.delete("foo.txt") if File.exists?("foo.txt")
+end
