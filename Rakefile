@@ -80,8 +80,8 @@ end
 
 namespace :example do
   desc "Run the IO.pread example program."
-  task :pread do
-    ruby '-Iext examples/example_io_extra.rb'
+  task :pread => [:build] do
+    ruby '-Iext examples/example_pread.rb'
   end
 end
 

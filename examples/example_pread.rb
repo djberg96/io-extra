@@ -3,7 +3,7 @@
 #
 # Example program demonstrating the use of IO.pread.
 ########################################################################
-require 'io/extra'
+require_relative '../lib/io-extra'
 require 'tmpdir'
 
 # Create a temporary file with a little data in it.
@@ -15,10 +15,10 @@ begin
   fh = File.open(file)
 
   puts "Handle position before read: #{fh.pos}"
-  puts IO.pread(fh.fileno, 18, 0)
+  puts IO.pread(fh, 18, 0)
 
   puts "Handle position after read: #{fh.pos}"
-  puts IO.pread(fh.fileno, 18, 0)
+  puts IO.pread(fh, 18, 0)
 ensure
   fh.close
 end
