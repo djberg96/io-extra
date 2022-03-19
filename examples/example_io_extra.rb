@@ -1,10 +1,10 @@
 ##############################################################################
-# test.rb
+# example_io_extra.rb
 #
-# This is a small test program for the io-extra library. Modify as you see
+# This is a small example program for the io-extra library. Modify as you see
 # fit. You can run this via the 'rake example' task.
 ##############################################################################
-require "io/extra"
+require_relative "../lib/io-extra"
 p IO::EXTRA_VERSION
 
 fh = File.open("foo.txt","w+")
