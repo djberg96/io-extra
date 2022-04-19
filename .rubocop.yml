@@ -8,6 +8,8 @@ RSpec/FilePath:
   SpecSuffixOnly: true
 RSpec/InstanceVariable:
   Enabled: false
+RSpec/DescribedClass:
+  Enabled: false
 
 AllCops:
   NewCops: enable
