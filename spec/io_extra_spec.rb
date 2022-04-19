@@ -70,7 +70,7 @@ describe IO do
 
     example 'fdwalk_honors_lowfd' do
       skip 'unsupported on OSX' if osx
-      IO.fdwalk(1){ |f| expect(f.fileno >= 1).to eq(true) }
+      IO.fdwalk(1){ |f| expect(f.fileno >= 1).to be(true) }
     end
   end
 
@@ -156,7 +156,7 @@ describe IO do
           expect(IO.writev(wr.fileno, vec)).to eq(bs * count)
           expect { wr.close }.not_to raise_error
           _, status = Process.waitpid2(pid)
-          expect(status.success?).to eq(true)
+          expect(status.success?).to be(true)
         end
       end
     end
