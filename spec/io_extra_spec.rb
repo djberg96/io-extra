@@ -133,7 +133,7 @@ describe IO do
 
       # bs * count should be > PIPE_BUF
       [true, false].each do |nonblock|
-        [[512, 512], [131073, 3], [4098, 64]].each do |(bs,count)|
+        [[512, 512], [131073, 3], [4098, 64]].each do |(bs, count)|
           rd, wr = IO.pipe
           wr.nonblock = nonblock
           buf = File.open('/dev/urandom', 'rb') { |fp| fp.sysread(bs) }
