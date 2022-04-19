@@ -143,11 +143,11 @@ describe IO do
             wr.close
             tmp = []
             sleep 0.1
-            begin
+            loop do
               tmp << rd.readpartial(8192, buf)
             rescue EOFError
               break
-            end while true
+            end
             ok = (vec.join(empty) == tmp.join(empty))
             exit! ok
           end
