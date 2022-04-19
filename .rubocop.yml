@@ -12,11 +12,11 @@ RSpec/InstanceVariable:
 AllCops:
   NewCops: enable
   Exclude:
-    - sys-cpu.gemspec
+    - io-extra.gemspec
     - Gemfile
-    - install.rb
     - examples/*.rb
     - Rakefile
+    - ext/extconf.rb
 Lint/AssignmentInCondition:
   Enabled: false
 Lint/EmptyBlock:
