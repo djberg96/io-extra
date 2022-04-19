@@ -18,30 +18,30 @@ describe IO do
     @fh.puts "The quick brown fox jumped over the lazy dog's back"
   end
 
-  context "constants" do
-    example "EXTRA_VERSION" do
+  context 'constants' do
+    example 'EXTRA_VERSION' do
       expect(IO::EXTRA_VERSION).to eq('1.4.0')
       expect(IO::EXTRA_VERSION).to be_frozen
     end
 
-    example "DIRECT" do
+    example 'DIRECT' do
       skip 'Skipped unless Linux' unless linux
       expect(IO::DIRECT).to eq(040000)
       expect(File::DIRECT).to eq(040000)
     end
 
-    example "DIRECTIO_ON and DIRECTIO_OFF" do
+    example 'DIRECTIO_ON and DIRECTIO_OFF' do
       expect(IO::DIRECTIO_ON).not_to be_nil
       expect(IO::DIRECTIO_OFF).not_to be_nil
     end
 
-    example "IOV_MAX_constant" do
+    example 'IOV_MAX_constant' do
       expect(IO::IOV_MAX).to be_kind_of(Integer)
     end
   end
 
-  context "flags" do
-    example "DIRECT flag" do
+  context 'flags' do
+    example 'DIRECT flag' do
       skip 'Skipped unless Linux' unless linux
       expect {
         fh = File.open(@fh.path, IO::RDWR|IO::DIRECT)
@@ -49,49 +49,49 @@ describe IO do
       }.not_to raise_error
     end
 
-    example "directio? method" do
+    example 'directio? method' do
       expect(@fh).to respond_to(:directio?)
       expect{ @fh.directio? }.not_to raise_error
     end
 
-    example "set DIRECTIO_ON" do
+    example 'set DIRECTIO_ON' do
       expect(@fh).to respond_to(:directio=)
       expect{ @fh.directio = 99 }.to raise_error(StandardError)
       expect{ @fh.directio = IO::DIRECTIO_ON }.not_to raise_error
     end
   end
 
-  context "fdwalk" do
-    example "fdwalk basic functionality" do
-      skip "unsupported on OSX" if osx
+  context 'fdwalk' do
+    example 'fdwalk basic functionality' do
+      skip 'unsupported on OSX' if osx
       expect(IO).to respond_to(:fdwalk)
       expect{ IO.fdwalk(0){ }.not_to raise_error }
     end
 
-    example "fdwalk_honors_lowfd" do
-      skip "unsupported on OSX" if osx
+    example 'fdwalk_honors_lowfd' do
+      skip 'unsupported on OSX' if osx
       IO.fdwalk(1){ |f| expect(f.fileno >= 1).to eq(true) }
     end
   end
 
-  context "closefrom" do
-    example "closefrom" do
+  context 'closefrom' do
+    example 'closefrom' do
       expect(IO).to respond_to(:closefrom)
       expect{ IO.closefrom(3) }.not_to raise_error
     end
   end
 
-  context "pread" do
-    example "pread basic functionality" do
+  context 'pread' do
+    example 'pread basic functionality' do
       @fh.close rescue nil
       @fh = File.open(@file)
       expect(IO).to respond_to(:pread)
-      expect(IO.pread(@fh, 5, 4)).to eq("quick")
+      expect(IO.pread(@fh, 5, 4)).to eq('quick')
     end
 
-    example "pread works in binary mode" do
+    example 'pread works in binary mode' do
       @fh.close rescue nil
-      @fh = File.open(@file, "ab")
+      @fh = File.open(@file, 'ab')
       @fh.binmode
       size = @fh.stat.size
       expect { @fh.syswrite("FOO\0HELLO") }.not_to raise_error
@@ -100,7 +100,7 @@ describe IO do
       expect(IO.pread(@fh, 3, size + 2))
     end
 
-    example "pread with offset works as expected" do
+    example 'pread with offset works as expected' do
       @fh.close rescue nil
       @fh = File.open(@file)
       size = @fh.stat.size
@@ -108,24 +108,24 @@ describe IO do
     end
   end
 
-  context "pwrite" do
-    example "pwrite basic functionality" do
+  context 'pwrite' do
+    example 'pwrite basic functionality' do
       expect(IO).to respond_to(:pwrite)
-      expect{ IO.pwrite(@fh, "HAL", 0) }.not_to raise_error
+      expect{ IO.pwrite(@fh, 'HAL', 0) }.not_to raise_error
     end
   end
 
-  context "writev" do
-    example "writev" do
+  context 'writev' do
+    example 'writev' do
       expect(IO).to respond_to(:writev)
       expect(IO.writev(@fh, %w[hello world])).to eq(10)
     end
   end
 
-  context "writev_retry" do
-    skip "no /dev/urandom found, skipping" unless File.exist?("/dev/urandom")
-    example "writev with retry works as expected" do
-      empty = ""
+  context 'writev_retry' do
+    skip 'no /dev/urandom found, skipping' unless File.exist?('/dev/urandom')
+    example 'writev with retry works as expected' do
+      empty = ''
 
       if empty.respond_to?(:force_encoding)
         empty.force_encoding(Encoding::BINARY)
@@ -136,7 +136,7 @@ describe IO do
         [ [ 512, 512 ], [ 131073, 3 ], [ 4098, 64 ] ].each do |(bs,count)|
           rd, wr = IO.pipe
           wr.nonblock = nonblock
-          buf = File.open("/dev/urandom", "rb") { |fp| fp.sysread(bs) }
+          buf = File.open('/dev/urandom', 'rb') { |fp| fp.sysread(bs) }
           vec = (1..count).map { buf }
 
           pid = fork do
@@ -162,11 +162,11 @@ describe IO do
     end
   end
 
-  example "ttyname" do
+  example 'ttyname' do
     expect(@fh).to respond_to(:ttyname)
     expect(@fh.ttyname).to be_nil
 
-    skip "skipping ttyname spec in CI environment" if ENV['CI']
+    skip 'skipping ttyname spec in CI environment' if ENV['CI']
     expect(STDOUT.ttyname).to be_kind_of(String)
   end
 
