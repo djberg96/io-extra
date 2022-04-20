@@ -97,7 +97,7 @@ describe IO do
       expect { @fh.syswrite("FOO\0HELLO") }.not_to raise_error
       @fh.close rescue nil
       @fh = File.open(@file)
-      expect(IO.pread(@fh, 3, size + 2))
+      expect(IO.pread(@fh, 3, size + 2)).to eq("O\0H")
     end
 
     example 'pread with offset works as expected' do
