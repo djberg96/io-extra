@@ -36,6 +36,8 @@ Style/HashSyntax:
   EnforcedStyle: hash_rockets
 Style/IfUnlessModifier:
   Enabled: false
+Style/NumericLiterals:
+  Enabled: false
 Style/NumericLiteralPrefix:
   Enabled: false
 Style/RedundantBegin:
