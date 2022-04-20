@@ -10,6 +10,8 @@ RSpec/InstanceVariable:
   Enabled: false
 RSpec/DescribedClass:
   Enabled: false
+RSpec/ExampleLength:
+  Enabled: false
 
 AllCops:
   NewCops: enable
@@ -68,6 +70,8 @@ Metrics/PerceivedComplexity:
   Enabled: false
 Naming/RescuedExceptionsVariableName:
   PreferredName: 'err'
+Naming/MethodParameterName:
+  Enabled: false
 Naming/FileName:
   Exclude:
     - 'lib/io-extra.rb'

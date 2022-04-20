@@ -18,6 +18,12 @@ describe IO do
     @fh.puts "The quick brown fox jumped over the lazy dog's back"
   end
 
+  after do
+    @fh.close rescue nil
+    @fh = nil
+    File.delete(@file) if File.exist?(@file)
+  end
+
   context 'constants' do
     example 'EXTRA_VERSION' do
       expect(IO::EXTRA_VERSION).to eq('1.4.0')
@@ -43,10 +49,7 @@ describe IO do
   context 'flags' do
     example 'DIRECT flag' do
       skip 'Skipped unless Linux' unless linux
-      expect {
-        fh = File.open(@fh.path, IO::RDWR | IO::DIRECT)
-        fh.close
-      }.not_to raise_error
+      expect { File.open(@fh.path, IO::RDWR | IO::DIRECT).close }.not_to raise_error
     end
 
     example 'directio? method' do
@@ -124,6 +127,7 @@ describe IO do
 
   context 'writev_retry' do
     skip 'no /dev/urandom found, skipping' unless File.exist?('/dev/urandom')
+    # rubocop:disable Metrics/BlockLength
     example 'writev with retry works as expected' do
       empty = ''
 
@@ -159,6 +163,7 @@ describe IO do
           expect(status.success?).to be(true)
         end
       end
+      # rubocop:enable Metrics/BlockLength
     end
   end
 
@@ -168,11 +173,5 @@ describe IO do
 
     skip 'skipping ttyname spec in CI environment' if ENV['CI']
     expect($stdout.ttyname).to be_kind_of(String)
-  end
-
-  after do
-    @fh.close rescue nil
-    @fh = nil
-    File.delete(@file) if File.exist?(@file)
   end
 end
