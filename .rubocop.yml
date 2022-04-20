@@ -1,0 +1,77 @@
+require: rubocop-rspec
+
+RSpec/MultipleExpectations:
+  Max: 4
+RSpec/ContextWording:
+  Enabled: false
+RSpec/FilePath:
+  SpecSuffixOnly: true
+RSpec/InstanceVariable:
+  Enabled: false
+RSpec/DescribedClass:
+  Enabled: false
+RSpec/ExampleLength:
+  Enabled: false
+
+AllCops:
+  NewCops: enable
+  Exclude:
+    - io-extra.gemspec
+    - Gemfile
+    - examples/*.rb
+    - Rakefile
+    - ext/extconf.rb
+Lint/AssignmentInCondition:
+  Enabled: false
+Lint/EmptyBlock:
+  Exclude:
+    - spec/*.rb
+Style/MethodCallWithoutArgsParentheses:
+  Enabled: false
+Style/NumericPredicate:
+  Enabled: false
+Style/ClassAndModuleChildren:
+  Enabled: false
+Style/ConditionalAssignment:
+  Enabled: false
+Style/FrozenStringLiteralComment:
+  Enabled: false
+Style/HashSyntax:
+  EnforcedStyle: hash_rockets
+Style/IfUnlessModifier:
+  Enabled: false
+Style/NumericLiterals:
+  Enabled: false
+Style/NumericLiteralPrefix:
+  Enabled: false
+Style/RedundantBegin:
+  Enabled: false   
+Style/SafeNavigation:
+  Enabled: false
+Style/RescueModifier:
+  Enabled: false
+Layout/EmptyLineAfterGuardClause:
+  Enabled: false
+Layout/CaseIndentation:
+  IndentOneStep: true
+Layout/SpaceBeforeBlockBraces:
+  Enabled: false
+Metrics/AbcSize:
+  Enabled: false
+Metrics/BlockLength:
+  IgnoredMethods: ['describe', 'context']
+Metrics/ClassLength:
+  Enabled: false
+Metrics/MethodLength:
+  Enabled: false
+Metrics/CyclomaticComplexity:
+  Enabled: false
+Metrics/PerceivedComplexity:
+  Enabled: false
+Naming/RescuedExceptionsVariableName:
+  PreferredName: 'err'
+Naming/MethodParameterName:
+  Enabled: false
+Naming/FileName:
+  Exclude:
+    - 'lib/io-extra.rb'

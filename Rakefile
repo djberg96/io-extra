@@ -1,6 +1,7 @@
 require 'rake'
 require 'rake/clean'
 require 'rspec/core/rake_task'
+require 'rubocop/rake_task'
 require 'rbconfig'
 include RbConfig
 
@@ -89,5 +90,7 @@ desc "Run the test suite"
 RSpec::Core::RakeTask.new(:spec) do |t|
   t.rspec_opts = '-Iext'
 end
+
+RuboCop::RakeTask.new
 
 task :default => [:build, :spec]
