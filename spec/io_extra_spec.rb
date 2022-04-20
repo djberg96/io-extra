@@ -65,7 +65,7 @@ describe IO do
     example 'fdwalk basic functionality' do
       skip 'unsupported on OSX' if osx
       expect(IO).to respond_to(:fdwalk)
-      expect{ IO.fdwalk(0){ }.not_to raise_error }
+      expect{ IO.fdwalk(0){} }.not_to raise_error
     end
 
     example 'fdwalk_honors_lowfd' do
