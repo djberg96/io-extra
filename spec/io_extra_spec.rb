@@ -167,7 +167,7 @@ describe IO do
     expect(@fh.ttyname).to be_nil
 
     skip 'skipping ttyname spec in CI environment' if ENV['CI']
-    expect(STDOUT.ttyname).to be_kind_of(String)
+    expect($stdout.ttyname).to be_kind_of(String)
   end
 
   after do
