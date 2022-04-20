@@ -44,7 +44,7 @@ describe IO do
     example 'DIRECT flag' do
       skip 'Skipped unless Linux' unless linux
       expect {
-        fh = File.open(@fh.path, IO::RDWR|IO::DIRECT)
+        fh = File.open(@fh.path, IO::RDWR | IO::DIRECT)
         fh.close
       }.not_to raise_error
     end
