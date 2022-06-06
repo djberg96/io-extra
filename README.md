@@ -2,8 +2,8 @@
 
 ## Description
 The io-extra library provides a few extra IO methods that you may find
-handy. They are `IO.closefrom`, `IO.fdwalk`, `IO.pread`, `IO.pread_ptr`,
-`IO.pwrite`, `IO.writev`, `IO#directio?` and `IO#directio=`.
+handy. They are `IO.closefrom`, `IO.fdwalk`, `IO.pread`, `IO.pwrite`,
+`IO.writev`, `IO#directio?` and `IO#directio=`.
 	
 This library is not supported on MS Windows.
 
