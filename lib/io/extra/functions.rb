@@ -53,7 +53,7 @@ module Extra
         # Not supported
       end
     else
-      ffi_lib :rt
+      ffi_lib :rt if RUBY_PLATFORM =~ /linux/i
 
       begin
         attach_function :aio_cancel, [:int, :pointer], :int
