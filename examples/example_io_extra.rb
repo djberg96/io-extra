@@ -49,5 +49,5 @@ puts "Done" # Shouldn't see this
   p fh.read
 ensure
   fh.close
-  File.delete("foo.txt") if File.exists?("foo.txt")
+  File.delete("foo.txt") if File.exist?("foo.txt")
 end

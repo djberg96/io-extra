@@ -26,7 +26,7 @@ task :build => [:clean] do
     ruby 'extconf.rb'
     sh 'make'
     build_file = File.join(Dir.pwd, 'extra.' + CONFIG['DLEXT'])
-    Dir.mkdir('io') unless File.exists?('io')
+    Dir.mkdir('io') unless File.exist?('io')
     FileUtils.cp(build_file, 'io')
   end
 end
