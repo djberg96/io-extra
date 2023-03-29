@@ -7,6 +7,7 @@ require 'rspec'
 require 'rbconfig'
 require 'io/nonblock'
 require 'io-extra'
+require 'fileutils'
 
 describe IO do
   let(:linux) { RbConfig::CONFIG['host_os'] =~ /linux/i }
@@ -21,7 +22,7 @@ describe IO do
   after do
     @fh.close rescue nil
     @fh = nil
-    File.delete(@file) if File.exist?(@file)
+    FileUtils.rm_f(@file)
   end
 
   context 'constants' do
@@ -42,7 +43,7 @@ describe IO do
     end
 
     example 'IOV_MAX_constant' do
-      expect(IO::IOV_MAX).to be_kind_of(Integer)
+      expect(IO::IOV_MAX).to be_a(Integer)
     end
   end
 
@@ -172,6 +173,6 @@ describe IO do
     expect(@fh.ttyname).to be_nil
 
     skip 'skipping ttyname spec in CI environment' if ENV['CI']
-    expect($stdout.ttyname).to be_kind_of(String)
+    expect($stdout.ttyname).to be_a(String)
   end
 end
