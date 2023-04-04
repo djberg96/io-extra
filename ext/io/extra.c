@@ -428,7 +428,7 @@ static VALUE io_get_ttyname(VALUE self){
 /* Adds the IO.closefrom, IO.fdwalk class methods, as well as the IO#directio
  * and IO#directio? instance methods (if supported on your platform).
  */
-void Init_extra(){
+void Init_extra(void){
   rb_define_singleton_method(rb_cIO, "closefrom", io_closefrom, 1);
 
 #ifdef HAVE_FDWALK
