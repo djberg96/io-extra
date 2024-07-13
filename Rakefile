@@ -10,6 +10,7 @@ CLEAN.include(
   '**/*.rbc',               # Rubinius
   '**/*.o',                 # C object file
   '**/*.log',               # Ruby extension build log
+  '**/*.lock',              # Gemfile.lock
   '**/Makefile',            # C Makefile
   '**/conftest.dSYM',       # OS X build directory
   "**/*.#{CONFIG['DLEXT']}" # C shared object
@@ -89,6 +90,11 @@ end
 desc "Run the test suite"
 RSpec::Core::RakeTask.new(:spec) do |t|
   t.rspec_opts = '-Iext'
+end
+
+# Clean up afterwards
+Rake::Task[:spec].enhance do
+  Rake::Task[:clean].invoke
 end
 
 RuboCop::RakeTask.new
