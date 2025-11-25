@@ -14,10 +14,10 @@ Gem::Specification.new do |spec|
   spec.email      = 'djberg96@gmail.com'
   spec.homepage   = 'https://github.com/djberg96/io-extra'
   spec.summary    = 'Adds extra methods to the IO class'
-  spec.test_file  = 'test/test_io_extra.rb'
+  spec.test_files = Dir['spec/*_spec.rb']
   spec.extensions = ['ext/extconf.rb']
   spec.cert_chain = ['certs/djberg96_pub.pem']
-  spec.files      = ['lib/io-extra.rb']
+  spec.files      = Dir['**/*'].reject{ |f| f.include?('git') }
 
   spec.extra_rdoc_files = [
     'CHANGES.md',
