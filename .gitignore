@@ -4,3 +4,4 @@
 *.o
 *.log
 Makefile
+*.dSYM
