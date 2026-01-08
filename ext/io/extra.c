@@ -430,16 +430,20 @@ static VALUE s_io_writev(VALUE klass, VALUE fd, VALUE ary) {
           break;
 
         // Bounds check before pointer arithmetic
-        if(new_iov == NULL)
+        if(new_iov == NULL){
+          free_iovec_buffer(&iov_buf);
           rb_raise(rb_eRuntimeError, "writev: iovec bounds check failed");
+        }
 
         // Partially written iov, modify and retry with current iovec in front
         if(new_iov->iov_len > (size_t)w){
           char* base = (char*)new_iov->iov_base;
 
           // Validate base pointer before arithmetic
-          if(base == NULL)
+          if(base == NULL){
+            free_iovec_buffer(&iov_buf);
             rb_raise(rb_eRuntimeError, "writev: null iov_base");
+          }
 
           new_iov->iov_len -= w;
           new_iov->iov_base = (void *)(base + w);
@@ -451,8 +455,10 @@ static VALUE s_io_writev(VALUE klass, VALUE fd, VALUE ary) {
       }
 
       // Validate we haven't exceeded bounds before modifying args
-      if(i > args.iovcnt)
+      if(i > args.iovcnt){
+        free_iovec_buffer(&iov_buf);
         rb_raise(rb_eRuntimeError, "writev: exceeded iovec array bounds");
+      }
 
       // Retry without the already-written iovecs
       args.iovcnt -= i;
