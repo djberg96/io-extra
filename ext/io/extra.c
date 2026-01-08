@@ -459,8 +459,11 @@ static VALUE io_get_ttyname(VALUE self){
 
   int fd = NUM2INT(rb_funcall(self, rb_intern("fileno"), 0, 0));
 
-  if(isatty(fd))
-    v_return = rb_str_new2(ttyname(fd));
+  if(isatty(fd)){
+    char *name = ttyname(fd);
+    if(name != NULL)
+      v_return = rb_str_new2(name);
+  }
 
   return v_return;
 }
