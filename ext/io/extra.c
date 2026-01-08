@@ -284,29 +284,51 @@ static VALUE io_set_directio(VALUE self, VALUE v_advice){
 }
 #endif
 
-/* this can't be a function since we use alloca() */
-#define ARY2IOVEC(iov,iovcnt,expect,ary) \
-   do { \
-      VALUE *cur; \
-      struct iovec *tmp; \
-      long n; \
-      if (TYPE(ary) != T_ARRAY) \
-         rb_raise(rb_eArgError, "must be an array of strings"); \
-      cur = RARRAY_PTR(ary); \
-      n = RARRAY_LEN(ary); \
-      if (n > IOV_MAX) \
-         rb_raise(rb_eArgError, "array is larger than IOV_MAX"); \
-      iov = tmp = alloca(sizeof(struct iovec) * n); \
-      expect = 0; \
-      iovcnt = (int)n; \
-      for (; --n >= 0; tmp++, cur++) { \
-         if (TYPE(*cur) != T_STRING) \
-            rb_raise(rb_eArgError, "must be an array of strings"); \
-         tmp->iov_base = RSTRING_PTR(*cur); \
-         tmp->iov_len = RSTRING_LEN(*cur); \
-         expect += tmp->iov_len; \
-      } \
-   } while (0)
+/* Structure to track iovec allocation */
+struct iovec_buffer {
+   struct iovec *iov;
+   int iovcnt;
+   ssize_t expected;
+};
+
+/* Convert Ruby array to iovec using heap allocation */
+static void ary2iovec(struct iovec_buffer *buf, VALUE ary) {
+   VALUE *cur;
+   struct iovec *tmp;
+   long n;
+
+   if (TYPE(ary) != T_ARRAY)
+      rb_raise(rb_eArgError, "must be an array of strings");
+
+   cur = RARRAY_PTR(ary);
+   n = RARRAY_LEN(ary);
+
+   if (n > IOV_MAX)
+      rb_raise(rb_eArgError, "array is larger than IOV_MAX");
+
+   buf->iov = tmp = ALLOC_N(struct iovec, n);
+   buf->expected = 0;
+   buf->iovcnt = (int)n;
+
+   for (; --n >= 0; tmp++, cur++) {
+      if (TYPE(*cur) != T_STRING) {
+         xfree(buf->iov);
+         buf->iov = NULL;
+         rb_raise(rb_eArgError, "must be an array of strings");
+      }
+      tmp->iov_base = RSTRING_PTR(*cur);
+      tmp->iov_len = RSTRING_LEN(*cur);
+      buf->expected += tmp->iov_len;
+   }
+}
+
+/* Free iovec buffer */
+static void free_iovec_buffer(struct iovec_buffer *buf) {
+   if (buf->iov) {
+      xfree(buf->iov);
+      buf->iov = NULL;
+   }
+}
 
 #if defined(HAVE_WRITEV)
 struct writev_args {
@@ -336,13 +358,17 @@ static VALUE s_io_writev(VALUE klass, VALUE fd, VALUE ary) {
   ssize_t result = 0;
   ssize_t left;
   struct writev_args args;
+  struct iovec_buffer iov_buf;
 
   // Allow a fileno or filehandle
   if(rb_respond_to(fd, rb_intern("fileno")))
     fd = rb_funcall(fd, rb_intern("fileno"), 0, 0);
 
   args.fd = NUM2INT(fd);
-  ARY2IOVEC(args.iov, args.iovcnt, left, ary);
+  ary2iovec(&iov_buf, ary);
+  args.iov = iov_buf.iov;
+  args.iovcnt = iov_buf.iovcnt;
+  left = iov_buf.expected;
 
   for(;;) {
     ssize_t w = (ssize_t)rb_thread_call_without_gvl(
@@ -359,6 +385,7 @@ static VALUE s_io_writev(VALUE klass, VALUE fd, VALUE ary) {
            * we'll let the next write (or close) fail instead */
           break;
         }
+        free_iovec_buffer(&iov_buf);
         rb_sys_fail("writev");
       }
     }
@@ -411,6 +438,7 @@ static VALUE s_io_writev(VALUE klass, VALUE fd, VALUE ary) {
     }
   }
 
+  free_iovec_buffer(&iov_buf);
   return LONG2NUM(result);
 }
 #endif
