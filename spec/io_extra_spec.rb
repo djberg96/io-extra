@@ -33,8 +33,11 @@ describe IO do
 
     example 'DIRECT' do
       skip 'Skipped unless Linux' unless linux
-      expect(IO::DIRECT).to eq(040000)
-      expect(File::DIRECT).to eq(040000)
+      # O_DIRECT value varies by architecture (e.g., 040000 on x86_64, 0100000 on others)
+      # Just verify it's defined and is a valid flag (positive integer)
+      expect(IO::DIRECT).to be_a(Integer)
+      expect(IO::DIRECT).to be > 0
+      expect(IO::DIRECT).to eq(File::DIRECT)
     end
 
     example 'DIRECTIO_ON and DIRECTIO_OFF' do
