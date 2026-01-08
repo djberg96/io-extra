@@ -27,7 +27,7 @@ describe IO do
 
   context 'constants' do
     example 'EXTRA_VERSION' do
-      expect(IO::EXTRA_VERSION).to eq('1.4.0')
+      expect(IO::EXTRA_VERSION).to eq('1.5.0')
       expect(IO::EXTRA_VERSION).to be_frozen
     end
 

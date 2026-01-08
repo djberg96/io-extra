@@ -1,3 +1,8 @@
+## 1.5.0 - 8-Jan-2026
+* The fdwalk method now works on MacOS.
+* Lots of internal refactoring in general, mostly for the writev method,
+  but also stuff like CI updates, rubocop suggestions, etc.
+
 ## 1.4.0 - 8-Jul-2020
 * Replaced the C versions of IO.pread and IO.pwrite singleton methods with
   pure Ruby wrappers since core Ruby has implemented instance method versions

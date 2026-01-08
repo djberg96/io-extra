@@ -102,7 +102,7 @@ well as the code for the IO.writev method.
 Apache-2.0
 
 ## Copyright
-(C) 2003-2021 Daniel J. Berger
+(C) 2003-2026 Daniel J. Berger
 All Rights Reserved
     
 ## Warranty
