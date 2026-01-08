@@ -134,7 +134,9 @@ static int close_func(void* lowfd, int fd){
 /* Structure to pass data to fdwalk_body and fdwalk_ensure */
 struct fdwalk_data {
   int lowfd;
-  DIR *dir;  /* Only used when PROC_SELF_FD_DIR is defined */
+#ifdef PROC_SELF_FD_DIR
+  DIR *dir;
+#endif
 };
 
 /* Cleanup function for rb_ensure */
