@@ -108,6 +108,12 @@ static VALUE io_closefrom(VALUE klass, VALUE v_low_fd){
 }
 
 #ifndef HAVE_FDWALK
+/*
+ * Note: fdwalk has an inherent race condition - file descriptors can be
+ * opened or closed by other threads between enumeration and callback
+ * invocation. This is a fundamental limitation of the fdwalk pattern.
+ * The callback should handle EBADF gracefully if needed.
+ */
 static int fdwalk(int (*func)(void *data, int fd), void *data){
    int rv = 0;
    int fd;
@@ -130,6 +136,10 @@ static int fdwalk(int (*func)(void *data, int fd), void *data){
          fd = (int)strtol(ent->d_name, &err, 10);
 
          if (errno || ! err || *err || fd == dir_fd)
+            continue;
+
+         /* Validate fd is still open before calling callback (reduces race window) */
+         if(fcntl(fd, F_GETFD) < 0)
             continue;
 
          if ((rv = func(data, fd)))
