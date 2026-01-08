@@ -108,64 +108,7 @@ static VALUE io_closefrom(VALUE klass, VALUE v_low_fd){
 }
 
 #ifndef HAVE_FDWALK
-/*
- * Note: fdwalk has an inherent race condition - file descriptors can be
- * opened or closed by other threads between enumeration and callback
- * invocation. This is a fundamental limitation of the fdwalk pattern.
- * The callback should handle EBADF gracefully if needed.
- */
-static int fdwalk(int (*func)(void *data, int fd), void *data){
-   int rv = 0;
-   int fd;
-
-#ifdef PROC_SELF_FD_DIR
-   DIR *dir = opendir(PROC_SELF_FD_DIR);
-
-   if(dir){ /* procfs may not be mounted... */
-      struct dirent *ent;
-      int saved_errno;
-      int dir_fd = dirfd(dir);
-
-      while((ent = readdir(dir))){
-         char *err = NULL;
-
-         if(ent->d_name[0] == '.')
-            continue;
-
-         errno = 0;
-         fd = (int)strtol(ent->d_name, &err, 10);
-
-         if (errno || ! err || *err || fd == dir_fd)
-            continue;
-
-         /* Validate fd is still open before calling callback (reduces race window) */
-         if(fcntl(fd, F_GETFD) < 0)
-            continue;
-
-         if ((rv = func(data, fd)))
-            break;
-      }
-      saved_errno = errno;
-      closedir(dir);
-      errno = saved_errno;
-   } else
-#endif /* PROC_SELF_FD_DIR */
-   {
-      int maxfd = open_max();
-
-      for(fd = 0; fd < maxfd; fd++){
-         /* use fcntl to detect whether fd is a valid file descriptor */
-         errno = 0;
-         if(fcntl(fd, F_GETFD) < 0)
-            continue;
-
-         errno = 0;
-         if ((rv = func(data, fd)))
-            break;
-      }
-   }
-   return rv;
-}
+/* Define HAVE_FDWALK so the io_fdwalk implementation below is compiled */
 #define HAVE_FDWALK
 #endif
 
@@ -188,6 +131,72 @@ static int close_func(void* lowfd, int fd){
   return 0;
 }
 
+/* Structure to pass data to fdwalk_body and fdwalk_ensure */
+struct fdwalk_data {
+  int lowfd;
+  DIR *dir;  /* Only used when PROC_SELF_FD_DIR is defined */
+};
+
+/* Cleanup function for rb_ensure */
+static VALUE fdwalk_ensure(VALUE arg){
+  struct fdwalk_data *data = (struct fdwalk_data *)arg;
+#ifdef PROC_SELF_FD_DIR
+  if(data->dir){
+    closedir(data->dir);
+    data->dir = NULL;
+  }
+#endif
+  (void)data; /* Suppress unused warning when PROC_SELF_FD_DIR not defined */
+  return Qnil;
+}
+
+/* Main fdwalk iteration body */
+static VALUE fdwalk_body(VALUE arg){
+  struct fdwalk_data *data = (struct fdwalk_data *)arg;
+  int fd;
+
+#ifdef PROC_SELF_FD_DIR
+  if(data->dir){
+    struct dirent *ent;
+    int dir_fd = dirfd(data->dir);
+
+    while((ent = readdir(data->dir))){
+      char *err = NULL;
+
+      if(ent->d_name[0] == '.')
+        continue;
+
+      errno = 0;
+      fd = (int)strtol(ent->d_name, &err, 10);
+
+      if (errno || !err || *err || fd == dir_fd)
+        continue;
+
+      /* Validate fd is still open before calling callback (reduces race window) */
+      if(fcntl(fd, F_GETFD) < 0)
+        continue;
+
+      close_func(&data->lowfd, fd);
+    }
+  } else
+#endif /* PROC_SELF_FD_DIR */
+  {
+    int maxfd = open_max();
+
+    for(fd = 0; fd < maxfd; fd++){
+      /* use fcntl to detect whether fd is a valid file descriptor */
+      errno = 0;
+      if(fcntl(fd, F_GETFD) < 0)
+        continue;
+
+      errno = 0;
+      close_func(&data->lowfd, fd);
+    }
+  }
+
+  return Qnil;
+}
+
 /*
  * call-seq:
  *    IO.fdwalk(lowfd){ |fh| ... }
@@ -198,15 +207,19 @@ static int close_func(void* lowfd, int fd){
  */
 static VALUE io_fdwalk(int argc, VALUE* argv, VALUE klass){
   VALUE v_low_fd, v_block;
-  int lowfd;
+  struct fdwalk_data data;
 
   rb_scan_args(argc, argv, "1&", &v_low_fd, &v_block);
-  lowfd = NUM2INT(v_low_fd);
+  data.lowfd = NUM2INT(v_low_fd);
 
-  if(lowfd < 0)
+  if(data.lowfd < 0)
     rb_raise(rb_eArgError, "lowfd must be non-negative");
 
-  fdwalk(close_func, &lowfd);
+#ifdef PROC_SELF_FD_DIR
+  data.dir = opendir(PROC_SELF_FD_DIR);
+#endif
+
+  rb_ensure(fdwalk_body, (VALUE)&data, fdwalk_ensure, (VALUE)&data);
 
   return klass;
 }
