@@ -87,8 +87,17 @@ static int open_max(void){
  */
 static VALUE io_closefrom(VALUE klass, VALUE v_low_fd){
   int i, lowfd;
-  int maxfd = open_max();
+  int maxfd;
+
   lowfd = NUM2INT(v_low_fd);
+
+  if(lowfd < 0)
+    rb_raise(rb_eArgError, "lowfd must be non-negative");
+
+  maxfd = open_max();
+
+  if(maxfd < 0)
+    rb_raise(rb_eRuntimeError, "failed to determine maximum file descriptor");
 
   for(i = lowfd; i < maxfd; i++) {
     if(!RB_RESERVED_FD_P(i))
@@ -183,6 +192,9 @@ static VALUE io_fdwalk(int argc, VALUE* argv, VALUE klass){
 
   rb_scan_args(argc, argv, "1&", &v_low_fd, &v_block);
   lowfd = NUM2INT(v_low_fd);
+
+  if(lowfd < 0)
+    rb_raise(rb_eArgError, "lowfd must be non-negative");
 
   fdwalk(close_func, &lowfd);
 
@@ -459,6 +471,10 @@ static VALUE io_get_ttyname(VALUE self){
 
   int fd = NUM2INT(rb_funcall(self, rb_intern("fileno"), 0, 0));
 
+  if(fd < 0)
+    rb_raise(rb_eArgError, "invalid file descriptor");
+
+  errno = 0;
   if(isatty(fd)){
     char *name = ttyname(fd);
     if(name != NULL)
