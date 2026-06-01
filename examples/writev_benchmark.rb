@@ -1,5 +1,5 @@
 require 'benchmark'
-require 'io-extra'
+require 'io/extra'
 
 a = (0..1023).to_a.map(&:to_s)
 

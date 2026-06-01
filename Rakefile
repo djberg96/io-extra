@@ -85,6 +85,11 @@ namespace :example do
   task :pread => [:build] do
     ruby '-Iext examples/example_pread.rb'
   end
+
+  desc "Run the IO.writev benchmark program."
+  task :writev => [:build] do
+    ruby '-Iext examples/writev_benchmark.rb'
+  end
 end
 
 desc "Run the test suite"
