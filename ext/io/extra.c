@@ -569,6 +569,11 @@ static VALUE readv_body(VALUE ptr) {
  * and leaves the file position unchanged. Short reads produce shorter strings
  * and empty strings for any remaining entries; EOF yields all empty strings.
  * This operates on the underlying descriptor, bypassing Ruby IO buffering.
+ *
+ *   File.binwrite('example.txt', 'Hello world')
+ *   File.open('example.txt', 'rb') do |file|
+ *     IO.readv(file, [5, 1, 5]) # => ["Hello", " ", "world"]
+ *   end
  */
 static VALUE s_io_readv(int argc, VALUE *argv, VALUE klass) {
   VALUE fd, lengths, offset;
