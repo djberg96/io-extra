@@ -1,3 +1,7 @@
+## 1.6.0 - 20-Nov-2026
+* Added an IO.readv method.
+* Updated the github workflow, removed some older Ruby versions, and added 4.0.
+
 ## 1.5.0 - 8-Jan-2026
 * The fdwalk method now works on MacOS.
 * Lots of internal refactoring in general, mostly for the writev method,
