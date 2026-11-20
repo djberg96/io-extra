@@ -3,7 +3,7 @@
 ## Description
 The io-extra library provides a few extra IO methods that you may find
 handy. They are `IO.closefrom`, `IO.fdwalk`, `IO.pread`, `IO.pwrite`,
-`IO.writev`, `IO#directio?` and `IO#directio=`.
+`IO.writev`, `IO.readv`, `IO#directio?` and `IO#directio=`.
 	
 This library is not supported on MS Windows.
 
@@ -31,7 +31,20 @@ IO.fdwalk(0){ |handle|
 
 # Write an array to an IO object efficiently
 IO.writev(fh.fileno, %w[a b c])
+
+# Scatter a read into binary strings; an optional offset preserves position.
+IO.readv(fh, [4, 8])     # => ["...", "..."]
+IO.readv(fh, [4, 8], 0)  # uses preadv when available
 ```
+
+`IO.readv` accepts an IO object or file descriptor and an array of nonnegative
+byte lengths. It returns one binary string per length. A short read leaves
+subsequent strings empty; at EOF all strings are empty. It makes one read
+operation, so a short read does not necessarily mean EOF. With an offset it
+uses `preadv`, or raises `NotImplementedError` if unavailable. The method is
+available when the platform supports `readv`. These calls bypass Ruby's IO
+buffering: flush pending writes and avoid mixing them with buffered reads on
+the same descriptor.
 
 ## Developer's Notes
 The "require 'io-extra'" is preferred over 'io/extra' because this is a mix

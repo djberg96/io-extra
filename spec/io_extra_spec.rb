@@ -120,6 +120,62 @@ describe IO do
     end
   end
 
+  context 'readv' do
+    before do
+      skip 'readv unavailable' unless IO.respond_to?(:readv)
+      @fh.flush
+      @fh.rewind
+    end
+
+    example 'reads binary segments and advances the descriptor' do
+      expect(IO.readv(@fh, [4, 5, 0])).to eq(['The ', 'quick', ''])
+      expect(@fh.pos).to eq(9)
+    end
+
+    example 'returns short and empty segments at EOF' do
+      @fh.seek(-3, IO::SEEK_END)
+      expect(IO.readv(@fh.fileno, [2, 4, 1])).to eq(["ck", "\n", ''])
+      expect(IO.readv(@fh, [1, 2])).to eq(['', ''])
+    end
+
+    example 'reads at an offset without changing position' do
+      @fh.seek(2)
+      begin
+        expect(IO.readv(@fh, [5, 1], 4)).to eq(['quick', ' '])
+      rescue NotImplementedError
+        skip 'preadv unavailable'
+      end
+      expect(@fh.pos).to eq(2)
+    end
+
+    example 'validates lengths and offsets' do
+      expect { IO.readv(@fh, [-1]) }.to raise_error(ArgumentError)
+      expect { IO.readv(@fh, [1, 'x']) }.to raise_error(TypeError)
+      expect { IO.readv(@fh, Array.new(IO::IOV_MAX + 1, 0)) }.to raise_error(ArgumentError)
+      expect { IO.readv(-1, [1]) }.to raise_error(Errno::EBADF)
+    end
+
+    example 'preserves null bytes and returns binary strings' do
+      @fh.rewind
+      @fh.write("a\0b")
+      @fh.flush
+      @fh.rewind
+      parts = IO.readv(@fh, [2, 1])
+      expect(parts).to eq(["a\0", 'b'])
+      expect(parts.map(&:encoding)).to eq([Encoding::BINARY, Encoding::BINARY])
+    end
+
+    example 'returns promptly on a short pipe read' do
+      rd, wr = IO.pipe
+      wr.write('abc')
+      wr.flush
+      expect(IO.readv(rd, [2, 4])).to eq(['ab', 'c'])
+    ensure
+      rd&.close
+      wr&.close
+    end
+  end
+
   context 'writev' do
     example 'writev' do
       expect(IO).to respond_to(:writev)
