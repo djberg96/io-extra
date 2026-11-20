@@ -486,6 +486,117 @@ static VALUE s_io_writev(VALUE klass, VALUE fd, VALUE ary) {
 }
 #endif
 
+#ifdef HAVE_READV
+struct readv_args {
+  int fd, count, positional;
+  off_t offset;
+  struct iovec *iov;
+  VALUE lengths;
+  ssize_t result;
+  int error;
+};
+
+static void *nogvl_readv(void *ptr) {
+  struct readv_args *args = ptr;
+#ifdef HAVE_PREADV
+  if (args->positional)
+    args->result = preadv(args->fd, args->iov, args->count, args->offset);
+  else
+#endif
+    args->result = readv(args->fd, args->iov, args->count);
+  args->error = errno;
+  return NULL;
+}
+
+static VALUE readv_cleanup(VALUE ptr) {
+  struct readv_args *args = (struct readv_args *)ptr;
+  int i;
+  if (args->iov) {
+    for (i = 0; i < args->count; i++) xfree(args->iov[i].iov_base);
+    xfree(args->iov);
+  }
+  return Qnil;
+}
+
+static VALUE readv_body(VALUE ptr) {
+  struct readv_args *args = (struct readv_args *)ptr;
+  VALUE result;
+  size_t total = 0;
+  ssize_t remaining;
+  int i;
+
+  args->iov = ALLOC_N(struct iovec, args->count);
+  memset(args->iov, 0, sizeof(struct iovec) * args->count);
+  for (i = 0; i < args->count; i++) {
+    VALUE length = rb_ary_entry(args->lengths, i);
+    long n = NUM2LONG(length);
+    if (n < 0 || (size_t)n > (size_t)SSIZE_MAX - total)
+      rb_raise(rb_eArgError, "invalid buffer length or total exceeds SSIZE_MAX");
+    total += (size_t)n;
+    args->iov[i].iov_len = (size_t)n;
+    args->iov[i].iov_base = n ? xmalloc((size_t)n) : NULL;
+  }
+
+  do {
+    rb_thread_call_without_gvl(nogvl_readv, args, RUBY_UBF_IO, NULL);
+    if (args->result >= 0) break;
+    errno = args->error;
+    if (errno == EINTR) {
+      rb_thread_check_ints();
+      continue;
+    }
+    if ((errno == EAGAIN || errno == EWOULDBLOCK) && rb_io_wait_readable(args->fd))
+      continue;
+    errno = args->error;
+    rb_sys_fail(args->positional ? "preadv" : "readv");
+  } while (1);
+
+  remaining = args->result;
+  result = rb_ary_new_capa(args->count);
+  for (i = 0; i < args->count; i++) {
+    size_t n = args->iov[i].iov_len;
+    if (n > (size_t)remaining) n = (size_t)remaining;
+    rb_ary_push(result, rb_str_new(args->iov[i].iov_base, (long)n));
+    remaining -= (ssize_t)n;
+  }
+  return result;
+}
+
+/*
+ * IO.readv(io, lengths, offset = nil) -> array of binary strings
+ *
+ * Reads up to each length in order using readv. With an offset, uses preadv
+ * and leaves the file position unchanged. Short reads produce shorter strings
+ * and empty strings for any remaining entries; EOF yields all empty strings.
+ * This operates on the underlying descriptor, bypassing Ruby IO buffering.
+ */
+static VALUE s_io_readv(int argc, VALUE *argv, VALUE klass) {
+  VALUE fd, lengths, offset;
+  struct readv_args args = {0};
+  long count;
+  rb_scan_args(argc, argv, "21", &fd, &lengths, &offset);
+  Check_Type(lengths, T_ARRAY);
+  count = RARRAY_LEN(lengths);
+  if (count > IOV_MAX || count > INT_MAX)
+    rb_raise(rb_eArgError, "array is larger than IOV_MAX");
+  if (rb_respond_to(fd, rb_intern("fileno")))
+    fd = rb_funcall(fd, rb_intern("fileno"), 0);
+  args.fd = NUM2INT(fd);
+  args.count = (int)count;
+  args.lengths = lengths;
+  if (!NIL_P(offset)) {
+#ifdef HAVE_PREADV
+    args.offset = NUM2OFFT(offset);
+    if (args.offset < 0) rb_raise(rb_eArgError, "offset must be non-negative");
+    args.positional = 1;
+#else
+    rb_raise(rb_eNotImpError, "preadv is not available on this platform");
+#endif
+  }
+  return rb_ensure(readv_body, (VALUE)&args, readv_cleanup, (VALUE)&args);
+}
+#endif
+
 #ifdef HAVE_TTYNAME
 /*
  * io.ttyname
@@ -541,6 +652,10 @@ void Init_extra(void){
 
 #ifdef HAVE_WRITEV
   rb_define_singleton_method(rb_cIO, "writev", s_io_writev, 2);
+#endif
+
+#ifdef HAVE_READV
+  rb_define_singleton_method(rb_cIO, "readv", s_io_readv, -1);
 #endif
 
 #ifdef HAVE_TTYNAME

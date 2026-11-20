@@ -11,6 +11,8 @@ have_func('closefrom')
 have_func('fdwalk')
 have_func('directio')
 have_func('writev')
+have_func('readv', 'sys/uio.h')
+have_func('preadv', 'sys/uio.h')
 have_func('ttyname')
 
 case RbConfig::CONFIG['host_os']
